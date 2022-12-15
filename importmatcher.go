@@ -152,10 +152,10 @@ func (impM *ImportMatcher) StarPath(startOfClassName string) (string, string) {
 	shortestImportPath := ""
 	for className, classPath := range impM.ClassMap {
 		if strings.HasPrefix(className, startOfClassName) {
-			if className != "" && (shortestClassName == "" || len(className) < len(shortestClassName)) {
+			if shortestClassName == "" || len(className) < len(shortestClassName) {
 				shortestClassName = className
 				shortestImportPath = strings.Replace(classPath, className, "*", 1)
-			} else if className != "" && len(className) == len(shortestClassName) {
+			} else if len(className) == len(shortestClassName) {
 				importPath := strings.Replace(classPath, className, "*", 1)
 				if importPath != "" && (shortestImportPath == "" || len(importPath) < len(shortestImportPath)) {
 					shortestClassName = className
