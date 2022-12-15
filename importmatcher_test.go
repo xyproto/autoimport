@@ -5,7 +5,7 @@ import (
 )
 
 func TestString(t *testing.T) {
-	impM, err := New(true)
+	impM, err := New(false)
 	if err != nil {
 		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
 	}
@@ -15,7 +15,7 @@ func TestString(t *testing.T) {
 }
 
 func TestSocketInputStream(t *testing.T) {
-	impM, err := New(true)
+	impM, err := New(false)
 	if err != nil {
 		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
 	}
@@ -29,7 +29,7 @@ func TestSocketInputStream(t *testing.T) {
 }
 
 func TestFileInputStream(t *testing.T) {
-	impM, err := New(true)
+	impM, err := New(false)
 	if err != nil {
 		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
 	}

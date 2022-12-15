@@ -21,24 +21,26 @@ import (
 type ImportMatcher struct {
 	JARPaths []string          // list of paths to examine for .jar files
 	classMap map[string]string // map from class name to class path. Shortest class path "wins".
+	onlyJava bool              // only Java, or Kotlin too?
 }
 
 var numCPU = runtime.NumCPU()
 
-// New creates a new ImportMatcher. If kotlineAsWell is true, /usr/share/kotlin/lib will be added to the .jar file search path.
-func New(kotlinAsWell bool) (*ImportMatcher, error) {
+// New creates a new ImportMatcher. If onlyJava is false, /usr/share/kotlin/lib will be added to the .jar file search path.
+func New(onlyJava bool) (*ImportMatcher, error) {
 	var JARPaths = []string{
 		env.Str("JAVA_HOME", "/usr/lib/jvm/default"),
 	}
-	if kotlinAsWell {
+	if !onlyJava {
 		JARPaths = append(JARPaths, "/usr/share/kotlin/lib")
 	}
-	return NewCustom(JARPaths)
+	return NewCustom(JARPaths, onlyJava)
 }
 
 // NewCustom creates a new ImportMatcher, given a slice of paths to search for .jar files.
-func NewCustom(JARPaths []string) (*ImportMatcher, error) {
+func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 	var impM ImportMatcher
+	impM.onlyJava = onlyJava
 
 	impM.JARPaths = make([]string, len(JARPaths))
 	for i := range JARPaths {
@@ -109,6 +111,12 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) error {
 
 			className := strings.TrimSuffix(strings.TrimSuffix(f.Name, ".class"), ".CLASS")
 			className = strings.ReplaceAll(className, "/", ".")
+
+			// Filter out the ones starting with java.lang.
+			//if strings.HasPrefix(className, "java.lang.") {
+			//continue
+			//}
+
 			className = strings.TrimSuffix(className, "$1")
 			className = strings.TrimSuffix(className, "$1")
 			if pos := strings.Index(className, "$"); pos >= 0 {

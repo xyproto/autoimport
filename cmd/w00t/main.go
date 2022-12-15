@@ -23,7 +23,7 @@ func main() {
 	var args Args
 	arg.MustParse(&args)
 
-	impl, err := importmatcher.New(!args.JavaOnly)
+	impl, err := importmatcher.New(args.JavaOnly)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
