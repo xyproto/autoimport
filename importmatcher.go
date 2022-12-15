@@ -174,6 +174,7 @@ func (impM *ImportMatcher) String() string {
 
 // StarPath takes the start of the class name and tries to return the shortest
 // found class name, and also the import path like "java.io.*"
+// Returns empty strings if there are no matches.
 func (impM *ImportMatcher) StarPath(startOfClassName string) (string, string) {
 	shortestClassName := ""
 	shortestImportPath := ""
@@ -194,8 +195,55 @@ func (impM *ImportMatcher) StarPath(startOfClassName string) (string, string) {
 	return shortestClassName, shortestImportPath
 }
 
+// StarPathExact takes the exact class name and tries to return the shortest
+// import path for the matching class, if found, like "java.io.*".
+// Returns empty string if there are no matches.
+func (impM *ImportMatcher) StarPathExact(exactClassName string) string {
+	shortestClassName := ""
+	shortestImportPath := ""
+	for className, classPath := range impM.classMap {
+		if className == exactClassName {
+			if shortestClassName == "" {
+				shortestClassName = className
+				shortestImportPath = strings.Replace(classPath, className, "*", 1)
+			} else if len(className) == len(shortestClassName) {
+				importPath := strings.Replace(classPath, className, "*", 1)
+				if shortestImportPath == "" || len(importPath) < len(shortestImportPath) {
+					shortestClassName = className
+					shortestImportPath = importPath
+				}
+			}
+		}
+	}
+	return shortestImportPath
+}
+
+// ImportPathExact takes the exact class name and tries to return the shortest
+// specific import path for the matching class, if found, like "java.io.File".
+// Returns empty string if there are no matches.
+func (impM *ImportMatcher) ImportPathExact(exactClassName string) string {
+	shortestClassName := ""
+	shortestImportPath := ""
+	for className, classPath := range impM.classMap {
+		if className == exactClassName {
+			if shortestClassName == "" {
+				shortestClassName = className
+				shortestImportPath = classPath
+			} else if len(className) == len(shortestClassName) {
+				importPath := classPath
+				if shortestImportPath == "" || len(importPath) < len(shortestImportPath) {
+					shortestClassName = className
+					shortestImportPath = importPath
+				}
+			}
+		}
+	}
+	return shortestImportPath
+}
+
 // StarPathAll takes the start of the class name and tries to return all
 // found class names, and also the import paths, like "java.io.*".
+// Returns empty strings if there are no matches.
 func (impM *ImportMatcher) StarPathAll(startOfClassName string) ([]string, []string) {
 	allClassNames := make([]string, 0)
 	allImportPaths := make([]string, 0)
@@ -210,6 +258,7 @@ func (impM *ImportMatcher) StarPathAll(startOfClassName string) ([]string, []str
 
 // StarPathAllExact takes the exact class name and tries to return all
 // matching class names, and also the import paths, like "java.io.*".
+// Returns empty strings if there are no matches.
 func (impM *ImportMatcher) StarPathAllExact(exactClassName string) ([]string, []string) {
 	allClassNames := make([]string, 0)
 	allImportPaths := make([]string, 0)

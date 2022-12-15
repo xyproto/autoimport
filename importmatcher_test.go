@@ -5,21 +5,21 @@ import (
 )
 
 func TestString(t *testing.T) {
-	impl, err := New(true)
+	impM, err := New(true)
 	if err != nil {
 		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
 	}
-	if impl.String() == "" {
+	if impM.String() == "" {
 		t.Fail()
 	}
 }
 
 func TestSocketInputStream(t *testing.T) {
-	impl, err := New(true)
+	impM, err := New(true)
 	if err != nil {
 		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
 	}
-	foundClass, foundImport := impl.StarPath("SocketInputS")
+	foundClass, foundImport := impM.StarPath("SocketInputS")
 	if foundClass != "SocketInputStream" {
 		t.Errorf("SocketInputS did not match with SocketInputStream but with %s\n", foundClass)
 	}
@@ -29,11 +29,11 @@ func TestSocketInputStream(t *testing.T) {
 }
 
 func TestFileInputStream(t *testing.T) {
-	impl, err := New(true)
+	impM, err := New(true)
 	if err != nil {
 		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
 	}
-	foundClass, foundImport := impl.StarPath("FileInputS")
+	foundClass, foundImport := impM.StarPath("FileInputS")
 	if foundClass != "FileInputStream" {
 		t.Errorf("FileInputS did not match with FileInputStream but with %s\n", foundClass)
 	}
