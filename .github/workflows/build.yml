@@ -19,7 +19,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Java
-      run: apt install default-jre default-jdk
+      run: sudo apt install default-jre default-jdk
     - name: Test
       run: go test ./...
 
@@ -45,6 +45,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Java
-      run: apt install default-jre default-jdk
+      run: sudo apt install default-jre default-jdk
     - name: Test
       run: go test ./...
