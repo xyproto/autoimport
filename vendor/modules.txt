@@ -4,6 +4,9 @@ github.com/alexflint/go-arg
 # github.com/alexflint/go-scalar v1.2.0
 ## explicit; go 1.15
 github.com/alexflint/go-scalar
+# github.com/stretchr/powerwalk v0.0.0-20151124150408-bceb9d014549
+## explicit
+github.com/stretchr/powerwalk
 # github.com/xyproto/env v1.8.0
 ## explicit; go 1.15
 github.com/xyproto/env
