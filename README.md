@@ -2,7 +2,7 @@
 
 Given source code, class names can be found in available `.jar` files, and import statements can be generated, for Java and for Kotlin.
 
-Includes the `w00t` utility for looking up packages, given the start of a class name:
+Includes the `w00t` utility for looking up packages, given the start of a class name. 
 
 Example use:
 
