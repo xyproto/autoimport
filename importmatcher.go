@@ -3,9 +3,11 @@ package importmatcher
 
 import (
 	"archive/zip"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"unicode"
 
 	"github.com/xyproto/env"
@@ -110,6 +112,9 @@ func readJAR(filePath string) ([]string, error) {
 func (impM *ImportMatcher) FindClassesInJAR(JARPath string) ([]string, error) {
 	allClasses := make([]string, 0)
 
+	var wg sync.WaitGroup
+	var add sync.Mutex
+
 	return allClasses, filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -122,25 +127,42 @@ func (impM *ImportMatcher) FindClassesInJAR(JARPath string) ([]string, error) {
 		}
 
 		//packageName := strings.TrimSuffix(strings.TrimSuffix(fileName, ".jar"), ".JAR")
-		foundClasses, err := readJAR(filePath)
-		if err != nil {
-			return err
-		}
 
-		allClasses = append(allClasses, foundClasses...)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			foundClasses, err := readJAR(filePath)
+			if err != nil {
+				log.Printf("error: %s\n", err)
+			}
+			add.Lock()
+			allClasses = append(allClasses, foundClasses...)
+			add.Unlock()
+		}()
+		wg.Wait()
 
 		return nil
 	})
 }
 
 func (impM *ImportMatcher) findClasses() ([]string, error) {
+	var wg sync.WaitGroup
+	var addMut sync.Mutex
 	allClasses := make([]string, 0)
 	for _, JARPath := range impM.JARPaths {
-		foundClasses, err := impM.FindClassesInJAR(JARPath)
-		if err != nil {
-			return nil, err
-		}
-		allClasses = append(allClasses, foundClasses...)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			foundClasses, err := impM.FindClassesInJAR(JARPath)
+			if err != nil {
+				log.Printf("error: %s\n", err)
+			}
+			addMut.Lock()
+			allClasses = append(allClasses, foundClasses...)
+			addMut.Unlock()
+
+		}()
+		wg.Wait()
 	}
 	return allClasses, nil
 }
