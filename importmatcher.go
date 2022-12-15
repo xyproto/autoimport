@@ -6,10 +6,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"unicode"
 
+	"github.com/stretchr/powerwalk"
 	"github.com/xyproto/env"
 )
 
@@ -18,9 +20,12 @@ import (
 // when New or NewCustom is called.
 type ImportMatcher struct {
 	JARPaths []string          // list of paths to examine for .jar files
-	classMap map[string]string // map from class name to class path
+	classMap map[string]string // map from class name to class path. Shortest class path "wins".
 }
 
+var numCPU = runtime.NumCPU()
+
+// New creates a new ImportMatcher. If kotlineAsWell is true, /usr/share/kotlin/lib will be added to the .jar file search path.
 func New(kotlinAsWell bool) (*ImportMatcher, error) {
 	var JARPaths = []string{
 		env.Str("JAVA_HOME", "/usr/lib/jvm/default"),
@@ -31,8 +36,10 @@ func New(kotlinAsWell bool) (*ImportMatcher, error) {
 	return NewCustom(JARPaths)
 }
 
+// NewCustom creates a new ImportMatcher, given a slice of paths to search for .jar files.
 func NewCustom(JARPaths []string) (*ImportMatcher, error) {
 	var impM ImportMatcher
+
 	impM.JARPaths = make([]string, len(JARPaths))
 	for i := range JARPaths {
 		JARPath := JARPaths[i]
@@ -41,21 +48,44 @@ func NewCustom(JARPaths []string) (*ImportMatcher, error) {
 		}
 		impM.JARPaths[i] = JARPath
 	}
-	allClasses, err := impM.findClasses()
-	if err != nil {
-		return nil, err
-	}
-	classMap := make(map[string]string)
-	for _, classPath := range allClasses {
+
+	foundClasses := make(chan string, 512)
+	impM.classMap = make(map[string]string)
+
+	go func() {
+		err := impM.findClasses(foundClasses)
+		if err != nil {
+			log.Printf("error: %s\n", err)
+		}
+		close(foundClasses)
+	}()
+
+	var m sync.RWMutex
+	var existingClassPath string
+	var ok bool
+
+	for classPath := range foundClasses {
+
 		className := classPath
 		if strings.Contains(classPath, ".") {
 			fields := strings.Split(classPath, ".")
 			lastField := fields[len(fields)-1]
 			className = lastField
 		}
-		classMap[className] = classPath
+
+		m.RLock()
+		existingClassPath, ok = impM.classMap[className]
+		m.RUnlock()
+
+		if ok && existingClassPath != "" && len(existingClassPath) <= len(classPath) {
+			continue
+		}
+
+		m.Lock()
+		impM.classMap[className] = classPath
+		m.Unlock()
 	}
-	impM.classMap = classMap
+
 	return &impM, nil
 }
 
@@ -66,14 +96,12 @@ func (impM *ImportMatcher) ClassMap() map[string]string {
 
 // readJAR returns a list of classes within the given .jar file,
 // for instance "SomePath/SomePath/SomeClass"
-func readJAR(filePath string) ([]string, error) {
+func (impM *ImportMatcher) readJAR(filePath string, found chan string) error {
 	readCloser, err := zip.OpenReader(filePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer readCloser.Close()
-
-	foundClasses := make([]string, 0)
 
 	for _, f := range readCloser.File {
 
@@ -102,20 +130,17 @@ func readJAR(filePath string) ([]string, error) {
 				continue
 			}
 
-			foundClasses = append(foundClasses, className)
+			found <- className
 		}
 	}
 
-	return foundClasses, nil
+	return nil
 }
 
-func (impM *ImportMatcher) FindClassesInJAR(JARPath string) ([]string, error) {
-	allClasses := make([]string, 0)
-
-	var wg sync.WaitGroup
-	var add sync.Mutex
-
-	return allClasses, filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
+// FindClassesInJAR will search the given JAR file for classes,
+// and pass them as strings down the "found" chan.
+func (impM *ImportMatcher) FindClassesInJAR(JARPath string, found chan string) error {
+	return powerwalk.WalkLimit(JARPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -126,45 +151,17 @@ func (impM *ImportMatcher) FindClassesInJAR(JARPath string) ([]string, error) {
 			return nil
 		}
 
-		//packageName := strings.TrimSuffix(strings.TrimSuffix(fileName, ".jar"), ".JAR")
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			foundClasses, err := readJAR(filePath)
-			if err != nil {
-				log.Printf("error: %s\n", err)
-			}
-			add.Lock()
-			allClasses = append(allClasses, foundClasses...)
-			add.Unlock()
-		}()
-		wg.Wait()
-
-		return nil
-	})
+		return impM.readJAR(filePath, found)
+	}, numCPU)
 }
 
-func (impM *ImportMatcher) findClasses() ([]string, error) {
-	var wg sync.WaitGroup
-	var addMut sync.Mutex
-	allClasses := make([]string, 0)
+func (impM *ImportMatcher) findClasses(found chan string) error {
 	for _, JARPath := range impM.JARPaths {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			foundClasses, err := impM.FindClassesInJAR(JARPath)
-			if err != nil {
-				log.Printf("error: %s\n", err)
-			}
-			addMut.Lock()
-			allClasses = append(allClasses, foundClasses...)
-			addMut.Unlock()
-
-		}()
-		wg.Wait()
+		if err := impM.FindClassesInJAR(JARPath, found); err != nil {
+			log.Printf("error: %s\n", err)
+		}
 	}
-	return allClasses, nil
+	return nil
 }
 
 func (impM *ImportMatcher) String() string {
