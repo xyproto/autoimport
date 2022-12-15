@@ -30,7 +30,6 @@ var numCPU = runtime.NumCPU()
 func New(onlyJava bool) (*ImportMatcher, error) {
 	var JARPaths = []string{
 		env.Str("JAVA_HOME", "/usr/lib/jvm/default"),
-                "/usr/lib/jvm/default-java",
 	}
 	if !onlyJava {
 		JARPaths = append(JARPaths, "/usr/share/kotlin/lib")
