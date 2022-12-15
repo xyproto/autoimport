@@ -11,9 +11,12 @@ import (
 	"github.com/xyproto/env"
 )
 
+// ImportMatcher is a struct that contains a list of JAR file paths,
+// and a lookup map from class names to class paths, which is populated
+// when New or NewCustom is called.
 type ImportMatcher struct {
 	JARPaths []string          // list of paths to examine for .jar files
-	ClassMap map[string]string // map from class name to class path
+	classMap map[string]string // map from class name to class path
 }
 
 func New(kotlinAsWell bool) (*ImportMatcher, error) {
@@ -50,8 +53,13 @@ func NewCustom(JARPaths []string) (*ImportMatcher, error) {
 		}
 		classMap[className] = classPath
 	}
-	impM.ClassMap = classMap
+	impM.classMap = classMap
 	return &impM, nil
+}
+
+// ClassMap returns the mapping from class names to class paths
+func (impM *ImportMatcher) ClassMap() map[string]string {
+	return impM.classMap
 }
 
 // readJAR returns a list of classes within the given .jar file,
@@ -139,7 +147,7 @@ func (impM *ImportMatcher) findClasses() ([]string, error) {
 
 func (impM *ImportMatcher) String() string {
 	var sb strings.Builder
-	for className, classPath := range impM.ClassMap {
+	for className, classPath := range impM.classMap {
 		sb.WriteString(className + ": " + classPath + "\n")
 	}
 	return sb.String()
@@ -150,14 +158,14 @@ func (impM *ImportMatcher) String() string {
 func (impM *ImportMatcher) StarPath(startOfClassName string) (string, string) {
 	shortestClassName := ""
 	shortestImportPath := ""
-	for className, classPath := range impM.ClassMap {
+	for className, classPath := range impM.classMap {
 		if strings.HasPrefix(className, startOfClassName) {
 			if shortestClassName == "" || len(className) < len(shortestClassName) {
 				shortestClassName = className
 				shortestImportPath = strings.Replace(classPath, className, "*", 1)
 			} else if len(className) == len(shortestClassName) {
 				importPath := strings.Replace(classPath, className, "*", 1)
-				if importPath != "" && (shortestImportPath == "" || len(importPath) < len(shortestImportPath)) {
+				if shortestImportPath == "" || len(importPath) < len(shortestImportPath) {
 					shortestClassName = className
 					shortestImportPath = importPath
 				}
@@ -165,4 +173,32 @@ func (impM *ImportMatcher) StarPath(startOfClassName string) (string, string) {
 		}
 	}
 	return shortestClassName, shortestImportPath
+}
+
+// StarPathAll takes the start of the class name and tries to return all
+// found class names, and also the import paths, like "java.io.*".
+func (impM *ImportMatcher) StarPathAll(startOfClassName string) ([]string, []string) {
+	allClassNames := make([]string, 0)
+	allImportPaths := make([]string, 0)
+	for className, classPath := range impM.classMap {
+		if strings.HasPrefix(className, startOfClassName) {
+			allClassNames = append(allClassNames, className)
+			allImportPaths = append(allImportPaths, strings.Replace(classPath, className, "*", 1))
+		}
+	}
+	return allClassNames, allImportPaths
+}
+
+// StarPathAllExact takes the exact class name and tries to return all
+// matching class names, and also the import paths, like "java.io.*".
+func (impM *ImportMatcher) StarPathAllExact(exactClassName string) ([]string, []string) {
+	allClassNames := make([]string, 0)
+	allImportPaths := make([]string, 0)
+	for className, classPath := range impM.classMap {
+		if className == exactClassName {
+			allClassNames = append(allClassNames, className)
+			allImportPaths = append(allImportPaths, strings.Replace(classPath, className, "*", 1))
+		}
+	}
+	return allClassNames, allImportPaths
 }
