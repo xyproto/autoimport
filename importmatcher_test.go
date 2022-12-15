@@ -21,10 +21,10 @@ func TestSocketInputStream(t *testing.T) {
 	}
 	foundClass, foundImport := impl.StarPath("SocketInputS")
 	if foundClass != "SocketInputStream" {
-		t.Fail()
+		t.Errorf("SocketInputS did not match with SocketInputStream but with %s\n", foundClass)
 	}
 	if foundImport != "java.net.*" {
-		t.Fail()
+		t.Errorf("Expected java.net.*, got %s\n", foundImport)
 	}
 }
 
@@ -35,9 +35,9 @@ func TestFileInputStream(t *testing.T) {
 	}
 	foundClass, foundImport := impl.StarPath("FileInputS")
 	if foundClass != "FileInputStream" {
-		t.Fail()
+		t.Errorf("FileInputS did not match with FileInputStream but with %s\n", foundClass)
 	}
 	if foundImport != "java.io.*" {
-		t.Fail()
+		t.Errorf("Expected java.io.*, got %s\n", foundImport)
 	}
 }

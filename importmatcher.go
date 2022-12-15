@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"unicode"
+
+	"github.com/xyproto/env"
 )
 
 type ImportMatcher struct {
@@ -15,16 +17,25 @@ type ImportMatcher struct {
 }
 
 func New(kotlinAsWell bool) (*ImportMatcher, error) {
-	var JARPaths = []string{"/usr/lib/jvm/default/"}
+	var JARPaths = []string{
+		env.Str("JAVA_HOME", "/usr/lib/jvm/default"),
+	}
 	if kotlinAsWell {
-		JARPaths = append(JARPaths, "/usr/share/kotlin/lib/")
+		JARPaths = append(JARPaths, "/usr/share/kotlin/lib")
 	}
 	return NewCustom(JARPaths)
 }
 
 func NewCustom(JARPaths []string) (*ImportMatcher, error) {
 	var impM ImportMatcher
-	impM.JARPaths = JARPaths
+	impM.JARPaths = make([]string, len(JARPaths))
+	for i := range JARPaths {
+		JARPath := JARPaths[i]
+		if !strings.HasSuffix(JARPath, "/") {
+			JARPath += "/"
+		}
+		impM.JARPaths[i] = JARPath
+	}
 	allClasses, err := impM.findClasses()
 	if err != nil {
 		return nil, err
@@ -64,6 +75,10 @@ func readJAR(filePath string) ([]string, error) {
 			className = strings.TrimSuffix(className, "$1")
 			if pos := strings.Index(className, "$"); pos >= 0 {
 				className = className[:pos]
+			}
+
+			if className == "" {
+				continue
 			}
 
 			// Filter out class names that are only lowercase (and '.')
@@ -134,14 +149,20 @@ func (impM *ImportMatcher) String() string {
 // found class name, and also the import path like "java.io.*"
 func (impM *ImportMatcher) StarPath(startOfClassName string) (string, string) {
 	shortestClassName := ""
-	importPath := ""
+	shortestImportPath := ""
 	for className, classPath := range impM.ClassMap {
 		if strings.HasPrefix(className, startOfClassName) {
-			if shortestClassName == "" || len(className) < len(shortestClassName) {
+			if className != "" && (shortestClassName == "" || len(className) < len(shortestClassName)) {
 				shortestClassName = className
-				importPath = strings.Replace(classPath, className, "*", 1)
+				shortestImportPath = strings.Replace(classPath, className, "*", 1)
+			} else if className != "" && len(className) == len(shortestClassName) {
+				importPath := strings.Replace(classPath, className, "*", 1)
+				if importPath != "" && (shortestImportPath == "" || len(importPath) < len(shortestImportPath)) {
+					shortestClassName = className
+					shortestImportPath = importPath
+				}
 			}
 		}
 	}
-	return shortestClassName, importPath
+	return shortestClassName, shortestImportPath
 }
