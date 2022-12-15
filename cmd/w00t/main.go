@@ -46,14 +46,17 @@ func main() {
 	var foundClasses, foundImports []string
 	if args.Exact {
 		foundClasses, foundImports = impl.StarPathAllExact(args.StartOfClassName)
+		if len(foundClasses) == 0 {
+			fmt.Fprintf(os.Stderr, "could not find the %s class\n", args.StartOfClassName)
+			os.Exit(1)
+		}
 	} else {
 		foundClasses, foundImports = impl.StarPathAll(args.StartOfClassName)
+		if len(foundClasses) == 0 {
+			fmt.Fprintf(os.Stderr, "found no class starting with %s\n", args.StartOfClassName)
+			os.Exit(1)
+		}
 	}
-	if len(foundClasses) == 0 {
-		fmt.Fprintf(os.Stderr, "found no class starting with %s\n", args.StartOfClassName)
-		os.Exit(1)
-	}
-
 	for i := range foundClasses {
 		foundClass := foundClasses[i]
 		foundImport := foundImports[i]
