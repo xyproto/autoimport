@@ -111,12 +111,6 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) error {
 
 			className := strings.TrimSuffix(strings.TrimSuffix(f.Name, ".class"), ".CLASS")
 			className = strings.ReplaceAll(className, "/", ".")
-
-			// Filter out the ones starting with java.lang.
-			//if strings.HasPrefix(className, "java.lang.") {
-			//continue
-			//}
-
 			className = strings.TrimSuffix(className, "$1")
 			className = strings.TrimSuffix(className, "$1")
 			if pos := strings.Index(className, "$"); pos >= 0 {
