@@ -128,7 +128,7 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 // findClassesInJAR will search the given JAR file for classes,
 // and pass them as strings down the "found" chan.
 func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
-	//filepath.Walk
+	var wg sync.WaitGroup
 	filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
 		//powerwalk.WalkLimit(JARPath, func(path string, info os.FileInfo, err error) error {
 		filePath := path
@@ -143,11 +143,16 @@ func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 			return nil
 		}
 
-		impM.readJAR(filePath, found)
+		wg.Add(1)
+		go func(filePath string) {
+			impM.readJAR(filePath, found)
+			wg.Done()
+		}(filePath)
 
 		return err
 		//}, numCPU)
 	})
+	wg.Wait()
 }
 
 func (impM *ImportMatcher) produceClasses(found chan string) {
