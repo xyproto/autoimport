@@ -29,6 +29,7 @@ const kotlinPath = "/usr/share/kotlin/lib"
 
 // New creates a new ImportMatcher. If onlyJava is false, /usr/share/kotlin/lib will be added to the .jar file search path.
 func New(onlyJava bool) (*ImportMatcher, error) {
+	fmt.Println("---!!!!!!!! NEW !!!!!!!!---")
 	javaHomePath := env.Str("JAVA_HOME", "/usr/lib/jvm/default")
 	if !isDir(javaHomePath) {
 		fmt.Println("LOOKING FOR which(java)")
