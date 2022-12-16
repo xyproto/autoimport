@@ -12,14 +12,16 @@ jobs:
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
+    - name: Java
+      run: sudo apt install default-jdk default-jre
+      run: source /etc/environment
+      run: ls -al /usr/lib/jvm
     - name: Install Kotlin
       uses: fwilhe2/setup-kotlin@main
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Java
-      run: sudo apt install default-jre default-jdk
     - name: Test
       run: go test ./...
 
@@ -28,6 +30,10 @@ jobs:
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
+    - name: Java
+      run: sudo apt install default-jdk default-jre
+      run: source /etc/environment
+      run: ls -al /usr/lib/jvm
     - name: Install Kotlin
       uses: fwilhe2/setup-kotlin@main
       with:
@@ -44,7 +50,5 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: Java
-      run: sudo apt install default-jre default-jdk
     - name: Test
       run: go test ./...
