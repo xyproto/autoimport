@@ -4,7 +4,6 @@ package importmatcher
 import (
 	"archive/zip"
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,7 +11,7 @@ import (
 	"sync"
 	"unicode"
 
-	"github.com/stretchr/powerwalk"
+	//"github.com/stretchr/powerwalk"
 	"github.com/xyproto/env"
 )
 
@@ -21,8 +20,9 @@ import (
 // when New or NewCustom is called.
 type ImportMatcher struct {
 	JARPaths []string          // list of paths to examine for .jar files
-	classMap map[string]string // map from class name to class path. Shortest class path "wins".
 	onlyJava bool              // only Java, or Kotlin too?
+	mut      sync.RWMutex      // mutex for protecting the map
+	classMap map[string]string // map from class name to class path. Shortest class path "wins".
 }
 
 var numCPU = runtime.NumCPU()
@@ -66,44 +66,16 @@ func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 		return nil, errors.New("no paths to search for JAR files")
 	}
 
-	foundClasses := make(chan string, 512)
+	//impM.mut.Lock()
 	impM.classMap = make(map[string]string)
+	//impM.mut.Unlock()
 
-	var (
-		m                 sync.RWMutex
-		existingClassPath string
-		ok                bool
-	)
+	found := make(chan string)
+	done := make(chan bool)
 
-	go func() {
-		err := impM.findClasses(foundClasses)
-		if err != nil {
-			log.Printf("error: %s\n", err)
-		}
-		close(foundClasses)
-	}()
-
-	for classPath := range foundClasses {
-
-		className := classPath
-		if strings.Contains(classPath, ".") {
-			fields := strings.Split(classPath, ".")
-			lastField := fields[len(fields)-1]
-			className = lastField
-		}
-
-		m.RLock()
-		existingClassPath, ok = impM.classMap[className]
-		m.RUnlock()
-
-		if ok && existingClassPath != "" && len(existingClassPath) <= len(classPath) {
-			continue
-		}
-
-		m.Lock()
-		impM.classMap[className] = classPath
-		m.Unlock()
-	}
+	go impM.produceClasses(found)
+	go impM.consumeClasses(found, done)
+	<-done
 
 	return &impM, nil
 }
@@ -114,16 +86,15 @@ func (impM *ImportMatcher) ClassMap() map[string]string {
 }
 
 // readJAR returns a list of classes within the given .jar file,
-// for instance "SomePath/SomePath/SomeClass"
-func (impM *ImportMatcher) readJAR(filePath string, found chan string) error {
+// for instance "some.package.name.SomeClass"
+func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 	readCloser, err := zip.OpenReader(filePath)
 	if err != nil {
-		return err
+		return
 	}
 	defer readCloser.Close()
 
 	for _, f := range readCloser.File {
-
 		if strings.HasSuffix(f.Name, ".class") || strings.HasSuffix(f.Name, ".CLASS") {
 
 			className := strings.TrimSuffix(strings.TrimSuffix(f.Name, ".class"), ".CLASS")
@@ -152,42 +123,76 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) error {
 			found <- className
 		}
 	}
-
-	return nil
 }
 
-// FindClassesInJAR will search the given JAR file for classes,
+// findClassesInJAR will search the given JAR file for classes,
 // and pass them as strings down the "found" chan.
-func (impM *ImportMatcher) FindClassesInJAR(JARPath string, found chan string) error {
-	return powerwalk.WalkLimit(JARPath, func(path string, info os.FileInfo, err error) error {
+func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
+	//filepath.Walk
+	filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
+		//powerwalk.WalkLimit(JARPath, func(path string, info os.FileInfo, err error) error {
+		filePath := path
+
 		if err != nil {
 			return err
 		}
-		filePath := path
+
 		fileName := info.Name()
 
 		if filepath.Ext(fileName) != ".jar" && filepath.Ext(fileName) != ".JAR" {
 			return nil
 		}
 
-		return impM.readJAR(filePath, found)
-	}, numCPU)
+		impM.readJAR(filePath, found)
+
+		return err
+		//}, numCPU)
+	})
 }
 
-func (impM *ImportMatcher) findClasses(found chan string) error {
+func (impM *ImportMatcher) produceClasses(found chan string) {
 	for _, JARPath := range impM.JARPaths {
-		if err := impM.FindClassesInJAR(JARPath, found); err != nil {
-			log.Printf("error: %s\n", err)
-		}
+		impM.findClassesInJAR(JARPath, found)
 	}
-	return nil
+	close(found)
+}
+
+func (impM *ImportMatcher) consumeClasses(found <-chan string, done chan<- bool) {
+	for classPath := range found {
+
+		// Let className be classPath by default, in case the replacements doesn't go through
+		className := classPath
+		if strings.Contains(classPath, ".") {
+			fields := strings.Split(classPath, ".")
+			lastField := fields[len(fields)-1]
+			className = lastField
+		}
+
+		// Check if the same or a shorter class name name already exists
+		impM.mut.RLock()
+		if existingClassPath, ok := impM.classMap[className]; ok && existingClassPath != "" && len(existingClassPath) <= len(classPath) {
+			impM.mut.RUnlock()
+			continue
+		}
+		impM.mut.RUnlock()
+
+		// Store the new class name and class path
+		impM.mut.Lock()
+		impM.classMap[className] = classPath
+		impM.mut.Unlock()
+	}
+	done <- true
 }
 
 func (impM *ImportMatcher) String() string {
 	var sb strings.Builder
+
+	impM.mut.RLock()
 	for className, classPath := range impM.classMap {
 		sb.WriteString(className + ": " + classPath + "\n")
 	}
+	impM.mut.RUnlock()
+
 	return sb.String()
 }
 
