@@ -9,8 +9,6 @@ import (
 	"strings"
 	"sync"
 	"unicode"
-
-	"github.com/xyproto/env"
 )
 
 // ImportMatcher is a struct that contains a list of JAR file paths,
@@ -23,33 +21,21 @@ type ImportMatcher struct {
 	classMap map[string]string // map from class name to class path. Shortest class path "wins".
 }
 
-const archJavaPath = "/usr/lib/jvm/default"
-const debianJavaPath = "/usr/lib/jvm/default-java"
-const kotlinPath = "/usr/share/kotlin/lib"
-
 // New creates a new ImportMatcher. If onlyJava is false, /usr/share/kotlin/lib will be added to the .jar file search path.
 func New(onlyJava bool) (*ImportMatcher, error) {
-	javaHomePath := env.Str("JAVA_HOME", archJavaPath)
-	if !isDir(javaHomePath) {
-		javaHomePath = debianJavaPath
+	javaHomePath, err := FindJava()
+	if err != nil {
+		return nil, err
 	}
-	if !isDir(javaHomePath) {
-		if javaExecutablePath := which("java"); javaExecutablePath != "" {
-			for isSymlink(javaExecutablePath) {
-				javaExecutablePath = followSymlink(javaExecutablePath)
-			}
-			javaHomePath = filepath.Dir(javaExecutablePath)
+	JARSearchPaths := []string{javaHomePath}
+	if !onlyJava {
+		kotlinPath, err := FindKotlin()
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		for isSymlink(javaHomePath) {
-			javaHomePath = followSymlink(javaHomePath)
-		}
+		JARSearchPaths = append(JARSearchPaths, kotlinPath)
 	}
-	var JARPaths = []string{javaHomePath}
-	if !onlyJava && isDir(kotlinPath) {
-		JARPaths = append(JARPaths, kotlinPath)
-	}
-	return NewCustom(JARPaths, onlyJava)
+	return NewCustom(JARSearchPaths, onlyJava)
 }
 
 // NewCustom creates a new ImportMatcher, given a slice of paths to search for .jar files.
