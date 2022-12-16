@@ -1,5 +1,7 @@
 # importmatcher
 
+# A WORK IN PROGRESS
+
 Given source code, class names can be found in available `.jar` files, and import statements can be generated, for Java and for Kotlin.
 
 ## Only tested on Arch Linux! It's a work in progress for other platforms!
