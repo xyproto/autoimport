@@ -4,6 +4,7 @@ package importmatcher
 import (
 	"archive/zip"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,8 +31,17 @@ const kotlinPath = "/usr/share/kotlin/lib"
 func New(onlyJava bool) (*ImportMatcher, error) {
 	javaHomePath := env.Str("JAVA_HOME", "/usr/lib/jvm/default")
 	if !isDir(javaHomePath) {
+		fmt.Println("LOOKING FOR which(java)")
 		if javaExecutablePath := which("java"); javaExecutablePath != "" {
+			fmt.Println("FOUND " + javaExecutablePath)
+			for isSymlink(javaExecutablePath) {
+				fmt.Println("THIS IS A SYMLINK " + javaExecutablePath)
+				javaExecutablePath = followSymlink(javaExecutablePath)
+				fmt.Println("THE SYMLINK RESOLVED TO " + javaExecutablePath)
+			}
+			fmt.Println("FINDING DIRECTORY OF " + javaExecutablePath)
 			javaHomePath = filepath.Dir(javaExecutablePath)
+			fmt.Println("FOUND THIS JAVA HOME " + javaHomePath)
 		} else if isDir(debianJavaPath) {
 			javaHomePath = debianJavaPath
 		}

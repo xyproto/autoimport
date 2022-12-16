@@ -40,3 +40,19 @@ func isDir(path string) bool {
 	}
 	return fi.IsDir()
 }
+
+func isSymlink(path string) bool {
+	_, err := os.Readlink(path)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func followSymlink(path string) string {
+	s, err := os.Readlink(path)
+	if err != nil {
+		return path
+	}
+	return s
+}
