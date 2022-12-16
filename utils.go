@@ -1,6 +1,7 @@
 package importmatcher
 
 import (
+	"os"
 	"os/exec"
 	"regexp"
 )
@@ -29,4 +30,13 @@ func hasS(sl []string, e string) bool {
 func extractWords(sourceCode string) []string {
 	re := regexp.MustCompile(`\b[A-Z][a-z]*([A-Z][a-z]*)*\b`)
 	return re.FindAllString(sourceCode, -1)
+}
+
+// isDir checks if the given path is a directory
+func isDir(path string) bool {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fi.IsDir()
 }
