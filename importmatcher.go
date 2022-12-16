@@ -48,6 +48,11 @@ func New(onlyJava bool) (*ImportMatcher, error) {
 		}
 	} else {
 		fmt.Println("THIS JAVA PATH EXISTS " + javaHomePath)
+		for isSymlink(javaHomePath) {
+				fmt.Println("THIS IS A SYMLINK " + javaHomePath)
+				javaHomePath = followSymlink(javaHomePath)
+				fmt.Println("THE SYMLINK RESOLVED TO " + javaHomePath)
+		}
 	}
 	var JARPaths = []string{javaHomePath}
 	if !onlyJava && isDir(kotlinPath) {
