@@ -3,6 +3,7 @@ package importmatcher
 
 import (
 	"archive/zip"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,7 +31,10 @@ var numCPU = runtime.NumCPU()
 func New(onlyJava bool) (*ImportMatcher, error) {
 	var JARPaths = []string{
 		env.Str("JAVA_HOME", "/usr/lib/jvm/default"),
-                "/usr/lib/jvm/default-java",
+		"/usr/lib/jvm/default-java",
+	}
+	if javaExecutablePath := which("java"); javaExecutablePath != "" {
+		JARPaths = append(JARPaths, filepath.Dir(javaExecutablePath))
 	}
 	if !onlyJava {
 		JARPaths = append(JARPaths, "/usr/share/kotlin/lib")
@@ -49,11 +53,27 @@ func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 		if !strings.HasSuffix(JARPath, "/") {
 			JARPath += "/"
 		}
-		impM.JARPaths[i] = JARPath
+		fi, err := os.Stat(JARPath)
+		if err != nil {
+			continue
+		}
+		if fi.IsDir() {
+			impM.JARPaths[i] = JARPath
+		}
+	}
+
+	if len(JARPaths) == 0 {
+		return nil, errors.New("no paths to search for JAR files")
 	}
 
 	foundClasses := make(chan string, 512)
 	impM.classMap = make(map[string]string)
+
+	var (
+		m                 sync.RWMutex
+		existingClassPath string
+		ok                bool
+	)
 
 	go func() {
 		err := impM.findClasses(foundClasses)
@@ -62,10 +82,6 @@ func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 		}
 		close(foundClasses)
 	}()
-
-	var m sync.RWMutex
-	var existingClassPath string
-	var ok bool
 
 	for classPath := range foundClasses {
 
