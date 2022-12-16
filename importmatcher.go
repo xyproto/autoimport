@@ -6,12 +6,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"unicode"
 
-	//"github.com/stretchr/powerwalk"
 	"github.com/xyproto/env"
 )
 
@@ -25,19 +23,22 @@ type ImportMatcher struct {
 	classMap map[string]string // map from class name to class path. Shortest class path "wins".
 }
 
-var numCPU = runtime.NumCPU()
+const debianJavaPath = "/usr/lib/jvm/default-java"
+const kotlinPath = "/usr/share/kotlin/lib"
 
 // New creates a new ImportMatcher. If onlyJava is false, /usr/share/kotlin/lib will be added to the .jar file search path.
 func New(onlyJava bool) (*ImportMatcher, error) {
-	var JARPaths = []string{
-		env.Str("JAVA_HOME", "/usr/lib/jvm/default"),
-		"/usr/lib/jvm/default-java",
+	javaHomePath := env.Str("JAVA_HOME", "/usr/lib/jvm/default")
+	if !isDir(javaHomePath) {
+		if javaExecutablePath := which("java"); javaExecutablePath != "" {
+			javaHomePath = filepath.Dir(javaExecutablePath)
+		} else if isDir(debianJavaPath) {
+			javaHomePath = debianJavaPath
+		}
 	}
-	if javaExecutablePath := which("java"); javaExecutablePath != "" {
-		JARPaths = append(JARPaths, filepath.Dir(javaExecutablePath))
-	}
-	if !onlyJava {
-		JARPaths = append(JARPaths, "/usr/share/kotlin/lib")
+	var JARPaths = []string{javaHomePath}
+	if !onlyJava && isDir(kotlinPath) {
+		JARPaths = append(JARPaths, kotlinPath)
 	}
 	return NewCustom(JARPaths, onlyJava)
 }
@@ -47,18 +48,13 @@ func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 	var impM ImportMatcher
 	impM.onlyJava = onlyJava
 
-	impM.JARPaths = make([]string, len(JARPaths))
-	for i := range JARPaths {
-		JARPath := JARPaths[i]
+	impM.JARPaths = make([]string, 0)
+	for _, JARPath := range JARPaths {
 		if !strings.HasSuffix(JARPath, "/") {
 			JARPath += "/"
 		}
-		fi, err := os.Stat(JARPath)
-		if err != nil {
-			continue
-		}
-		if fi.IsDir() {
-			impM.JARPaths[i] = JARPath
+		if isDir(JARPath) {
+			impM.JARPaths = append(impM.JARPaths, JARPath)
 		}
 	}
 
@@ -66,9 +62,7 @@ func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 		return nil, errors.New("no paths to search for JAR files")
 	}
 
-	//impM.mut.Lock()
 	impM.classMap = make(map[string]string)
-	//impM.mut.Unlock()
 
 	found := make(chan string)
 	done := make(chan bool)
@@ -95,9 +89,10 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 	defer readCloser.Close()
 
 	for _, f := range readCloser.File {
-		if strings.HasSuffix(f.Name, ".class") || strings.HasSuffix(f.Name, ".CLASS") {
+		fileName := f.Name
+		if strings.HasSuffix(fileName, ".class") || strings.HasSuffix(fileName, ".CLASS") {
 
-			className := strings.TrimSuffix(strings.TrimSuffix(f.Name, ".class"), ".CLASS")
+			className := strings.TrimSuffix(strings.TrimSuffix(fileName, ".class"), ".CLASS")
 			className = strings.ReplaceAll(className, "/", ".")
 			className = strings.TrimSuffix(className, "$1")
 			className = strings.TrimSuffix(className, "$1")
@@ -130,7 +125,6 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 	var wg sync.WaitGroup
 	filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
-		//powerwalk.WalkLimit(JARPath, func(path string, info os.FileInfo, err error) error {
 		filePath := path
 
 		if err != nil {
@@ -150,15 +144,20 @@ func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 		}(filePath)
 
 		return err
-		//}, numCPU)
 	})
 	wg.Wait()
 }
 
 func (impM *ImportMatcher) produceClasses(found chan string) {
+	var wg sync.WaitGroup
 	for _, JARPath := range impM.JARPaths {
-		impM.findClassesInJAR(JARPath, found)
+		wg.Add(1)
+		go func(path string) {
+			impM.findClassesInJAR(path, found)
+			wg.Done()
+		}(JARPath)
 	}
+	wg.Wait()
 	close(found)
 }
 
