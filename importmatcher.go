@@ -4,7 +4,6 @@ package importmatcher
 import (
 	"archive/zip"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,34 +23,26 @@ type ImportMatcher struct {
 	classMap map[string]string // map from class name to class path. Shortest class path "wins".
 }
 
+const archJavaPath = "/usr/lib/jvm/default"
 const debianJavaPath = "/usr/lib/jvm/default-java"
 const kotlinPath = "/usr/share/kotlin/lib"
 
 // New creates a new ImportMatcher. If onlyJava is false, /usr/share/kotlin/lib will be added to the .jar file search path.
 func New(onlyJava bool) (*ImportMatcher, error) {
-	fmt.Println("---!!!!!!!! NEW !!!!!!!!---")
-	javaHomePath := env.Str("JAVA_HOME", "/usr/lib/jvm/default")
+	javaHomePath := env.Str("JAVA_HOME", archJavaPath)
 	if !isDir(javaHomePath) {
-		fmt.Println("LOOKING FOR which(java)")
+		javaHomePath = debianJavaPath
+	}
+	if !isDir(javaHomePath) {
 		if javaExecutablePath := which("java"); javaExecutablePath != "" {
-			fmt.Println("FOUND " + javaExecutablePath)
 			for isSymlink(javaExecutablePath) {
-				fmt.Println("THIS IS A SYMLINK " + javaExecutablePath)
 				javaExecutablePath = followSymlink(javaExecutablePath)
-				fmt.Println("THE SYMLINK RESOLVED TO " + javaExecutablePath)
 			}
-			fmt.Println("FINDING DIRECTORY OF " + javaExecutablePath)
 			javaHomePath = filepath.Dir(javaExecutablePath)
-			fmt.Println("FOUND THIS JAVA HOME " + javaHomePath)
-		} else if isDir(debianJavaPath) {
-			javaHomePath = debianJavaPath
 		}
 	} else {
-		fmt.Println("THIS JAVA PATH EXISTS " + javaHomePath)
 		for isSymlink(javaHomePath) {
-				fmt.Println("THIS IS A SYMLINK " + javaHomePath)
-				javaHomePath = followSymlink(javaHomePath)
-				fmt.Println("THE SYMLINK RESOLVED TO " + javaHomePath)
+			javaHomePath = followSymlink(javaHomePath)
 		}
 	}
 	var JARPaths = []string{javaHomePath}
