@@ -45,6 +45,8 @@ func New(onlyJava bool) (*ImportMatcher, error) {
 		} else if isDir(debianJavaPath) {
 			javaHomePath = debianJavaPath
 		}
+	} else {
+		fmt.Println("THIS JAVA PATH EXISTS " + javaHomePath)
 	}
 	var JARPaths = []string{javaHomePath}
 	if !onlyJava && isDir(kotlinPath) {
