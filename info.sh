@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 echo JAR 1
 find /opt/hostedtoolcache/Java_Zulu_jdk/11.0.17-8/x64 -name "*.jar" -type f
 echo JAR 2
