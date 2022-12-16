@@ -12,10 +12,11 @@ jobs:
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
-    - name: Java
-      run: sudo apt install default-jdk default-jre
-    - name: Java ls
-      run: ls -al /usr/lib/jvm
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '11'    
     - name: Install Kotlin
       uses: fwilhe2/setup-kotlin@main
       with:
@@ -30,10 +31,10 @@ jobs:
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
-    - name: Java
-      run: sudo apt install default-jdk default-jre
-    - name: Java ls
-      run: ls -al /usr/lib/jvm
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '11'    
     - name: Install Kotlin
       uses: fwilhe2/setup-kotlin@main
       with:
