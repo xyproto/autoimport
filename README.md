@@ -1,7 +1,5 @@
 # importmatcher
 
-# NOTE: The CI configuration is a work in progress! There are weird debug messages right now.
-
 Given source code, class names can be found in available `.jar` files, and import statements can be generated, for Java and for Kotlin.
 
 ## Only tested on Arch Linux! It's a work in progress for other platforms!
