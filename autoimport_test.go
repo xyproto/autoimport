@@ -31,30 +31,30 @@ public class ReadFile {
 func TestFindImports(t *testing.T) {
 	impM, err := New(true)
 	if err != nil {
-		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
+		t.Fatalf("Could not initialize ImportMatcher: %s\n", err)
 	}
 	foundImports := impM.FindImports(sourceCode)
 	if !hasS(foundImports, "java.io.File") {
-		t.Errorf("The list of found imports should include java.io.File\n")
+		t.Fatalf("The list of found imports should include java.io.File\n")
 	}
 	if !hasS(foundImports, "java.io.FileNotFoundException") {
-		t.Errorf("The list of found imports should include java.io.FileNotFoundException\n")
+		t.Fatalf("The list of found imports should include java.io.FileNotFoundException\n")
 	}
 	if !hasS(foundImports, "java.util.Scanner") {
-		t.Errorf("The list of found imports should include java.util.Scanner\n")
+		t.Fatalf("The list of found imports should include java.util.Scanner\n")
 	}
 	if len(foundImports) != 3 {
-		t.Errorf("There should only be 3 found imports\n")
+		t.Fatalf("There should only be 3 found imports\n")
 	}
 }
 
 func TestOrganizedImports(t *testing.T) {
 	impM, err := New(true)
 	if err != nil {
-		t.Errorf("Could not initialize ImportMatcher: %s\n", err)
+		t.Fatalf("Could not initialize ImportMatcher: %s\n", err)
 	}
 	organizedImports := impM.OrganizedImports(sourceCode, true)
 	if organizedImports != organizedImportsShouldLookLike {
-		t.Errorf("The organized imports looks like:\n\n%s\nBut they should look like:\n\n%s\n", organizedImports, organizedImportsShouldLookLike)
+		t.Fatalf("The organized imports looks like:\n\n%s\nBut they should look like:\n\n%s\n", organizedImports, organizedImportsShouldLookLike)
 	}
 }

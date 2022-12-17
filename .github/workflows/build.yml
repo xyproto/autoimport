@@ -1,0 +1,22 @@
+name: Build and test
+on: [push, pull_request]
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update APT
+      run: sudo apt update
+    - name: Install Java
+      run: sudo apt install -y default-jdk default-jre
+    - name: Find /usr/lib/jvm
+      run: find /usr/lib/jvm
+    - name: Install Kotlin
+      uses: fwilhe2/setup-kotlin@main
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.19.x
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Test
+      run: go test ./...

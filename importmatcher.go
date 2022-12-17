@@ -4,6 +4,7 @@ package importmatcher
 import (
 	"archive/zip"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,6 +78,8 @@ func (impM *ImportMatcher) ClassMap() map[string]string {
 // readJAR returns a list of classes within the given .jar file,
 // for instance "some.package.name.SomeClass"
 func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
+	fmt.Println("Reading " + filePath)
+
 	readCloser, err := zip.OpenReader(filePath)
 	if err != nil {
 		return
@@ -115,18 +118,22 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 	}
 }
 
-// findClassesInJAR will search the given JAR file for classes,
-// and pass them as strings down the "found" chan.
+// findClassesInJAR will search the given JAR path for JAR files,
+// and then search each JAR file for for classes.
+// Found classes will be sent to the found chan.
 func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 	var wg sync.WaitGroup
 	filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
-		filePath := path
-
 		if err != nil {
 			return err
 		}
 
+		if strings.Contains(path, "/demo/") {
+			return nil
+		}
+
 		fileName := info.Name()
+		filePath := path
 
 		if filepath.Ext(fileName) != ".jar" && filepath.Ext(fileName) != ".JAR" {
 			return nil

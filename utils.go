@@ -1,9 +1,12 @@
 package importmatcher
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 )
 
 // which tries to find the given executable name in the $PATH
@@ -55,4 +58,24 @@ func followSymlink(path string) string {
 		return path
 	}
 	return s
+}
+
+func FindInEtcEnvironment(envVarName string) (string, error) {
+	// Find the definition of ie. JAVA_HOME within /etc/environment
+	data, err := os.ReadFile("/etc/environment")
+	if err != nil {
+		return "", err
+	}
+	lines := bytes.Split(data, []byte{'\n'})
+	for _, line := range lines {
+		if bytes.Contains(line, []byte(envVarName)) && bytes.Count(line, []byte("=")) == 1 {
+			fields := bytes.SplitN(line, []byte("="), 2)
+			javaPath := strings.TrimSpace(string(fields[1]))
+			if !isDir(javaPath) {
+				continue
+			}
+			return javaPath, nil
+		}
+	}
+	return "", fmt.Errorf("could not find the value of %s in /etc/environment", envVarName)
 }
