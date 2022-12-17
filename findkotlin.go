@@ -1,8 +1,10 @@
 package importmatcher
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
+	"os"
+	"strings"
 )
 
 const kotlinPath = "/usr/share/kotlin/lib"
@@ -11,9 +13,21 @@ const kotlinPath = "/usr/share/kotlin/lib"
 // (with subfolders with .jar files) on the system.
 func FindKotlin() (string, error) {
 	// 1. Find out if "kotlinc" is in the $PATH
-	if javaExecutablePath := which("kotlinc"); javaExecutablePath != "" {
+	if kotlinExecutablePath := which("kotlinc"); kotlinExecutablePath != "" {
 		// TODO: Find the definition of KOTLIN_HOME within the kotlinc script
-		fmt.Println("TO IMPLEMENT: examine kotlinc")
+		data, err := os.ReadFile(kotlinExecutablePath)
+		if err != nil {
+			return "", err
+		}
+		lines := bytes.Split(data, []byte{'\n'})
+		for _, line := range lines {
+			if bytes.Contains(line, []byte("KOTLIN_HOME")) && bytes.Count(line, []byte("=")) == 1 {
+				fields := bytes.SplitN(line, []byte("="), 2)
+				kotlinPath := strings.TrimSpace(string(fields[1]))
+				return kotlinPath, nil
+			}
+		}
+
 	}
 	// 2. Consider typical path, for Arch Linux
 	if isDir(kotlinPath) {
