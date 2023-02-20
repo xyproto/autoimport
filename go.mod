@@ -1,4 +1,4 @@
-module github.com/xyproto/importmatcher
+module github.com/xyproto/autoimport
 
 go 1.19
 
