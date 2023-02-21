@@ -1,6 +1,8 @@
 package autoimport
 
 import (
+	"fmt"
+	"os"
 	"sort"
 	"strings"
 )
@@ -9,8 +11,12 @@ import (
 // appropriate import package paths. Ignores "java.lang." classes.
 func (impM *ImportMatcher) FindImports(sourceCode string) []string {
 	var foundImports []string
-	for _, word := range extractWords(sourceCode) {
+	for _, word := range unique(extractWords(sourceCode)) {
 		foundPath := impM.ImportPathExact(word)
+		if foundPath == "" {
+			fmt.Fprintf(os.Stderr, "could not find an import path for this word: %s\n", word)
+			continue
+		}
 		if foundPath != "" && !strings.HasPrefix(foundPath, "java.lang.") {
 			if !hasS(foundImports, foundPath) {
 				foundImports = append(foundImports, foundPath)
@@ -28,7 +34,8 @@ func (impM *ImportMatcher) OrganizedImports(sourceCode string, onlyJava bool) st
 	imports := impM.FindImports(sourceCode)
 	sort.Strings(imports)
 	for _, importPackage := range imports {
-		sb.WriteString("import " + importPackage)
+		sb.WriteString("import ")
+		sb.WriteString(importPackage)
 		if onlyJava {
 			sb.WriteString(";\n")
 		} else {

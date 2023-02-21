@@ -1,6 +1,7 @@
 package autoimport
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -35,7 +36,7 @@ func TestFindImports(t *testing.T) {
 	}
 	foundImports := impM.FindImports(sourceCode)
 	if !hasS(foundImports, "java.io.File") {
-		t.Fatalf("The list of found imports should include java.io.File\n")
+		t.Fatalf("The list of found imports should include java.io.File, this is the current list:\n%s", strings.Join(foundImports, "\n\t"))
 	}
 	if !hasS(foundImports, "java.io.FileNotFoundException") {
 		t.Fatalf("The list of found imports should include java.io.FileNotFoundException\n")
