@@ -95,6 +95,45 @@ func (impM *ImportMatcher) ClassMap() map[string]string {
 	return impM.classMap
 }
 
+// readSOURCE returns a list of classes within the given src.zip file,
+// for instance "some.package.name.SomeClass"
+func (impM *ImportMatcher) readSOURCE(filePath string, found chan string) {
+	readCloser, err := zip.OpenReader(filePath)
+	if err != nil {
+		return
+	}
+	defer readCloser.Close()
+
+	for _, f := range readCloser.File {
+		fileName := f.Name
+		if strings.HasSuffix(fileName, ".java") || strings.HasSuffix(fileName, ".JAVA") {
+
+			// The class name is derived from the .java path within the src.zip file
+
+			className := strings.TrimSuffix(strings.TrimSuffix(fileName, ".java"), ".JAVA")
+			className = strings.ReplaceAll(className, "/", ".")
+			className = strings.TrimPrefix(className, "java.base.")
+			className = strings.TrimPrefix(className, "jdk.internal.")
+			if className == "" {
+				continue
+			}
+
+			// Filter out class names that are only lowercase (and '.')
+			allLower := true
+			for _, r := range className {
+				if !unicode.IsLower(r) && r != '.' {
+					allLower = false
+				}
+			}
+			if allLower {
+				continue
+			}
+
+			found <- className
+		}
+	}
+}
+
 // readJAR returns a list of classes within the given .jar file,
 // for instance "some.package.name.SomeClass"
 func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
@@ -107,6 +146,8 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 	for _, f := range readCloser.File {
 		fileName := f.Name
 		if strings.HasSuffix(fileName, ".class") || strings.HasSuffix(fileName, ".CLASS") {
+
+			// The class name is derived from the .class path within the jar file
 
 			className := strings.TrimSuffix(strings.TrimSuffix(fileName, ".class"), ".CLASS")
 			className = strings.ReplaceAll(className, "/", ".")
@@ -136,16 +177,16 @@ func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
 	}
 }
 
-// findClassesInJAR will search the given JAR path for JAR files,
+// findClassesInJarOrSrc will search the given JAR path for JAR files,
 // and then search each JAR file for for classes.
 // Found classes will be sent to the found chan.
-func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
+// Will also search "*/lib/src.zip" files.
+func (impM *ImportMatcher) findClassesInJarOrSrc(JARPath string, found chan string) {
 	var wg sync.WaitGroup
 	filepath.Walk(JARPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-
 		if strings.Contains(path, "/demo/") {
 			return nil
 		}
@@ -153,17 +194,23 @@ func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 		fileName := info.Name()
 		filePath := path
 
-		if filepath.Ext(fileName) != ".jar" && filepath.Ext(fileName) != ".JAR" {
-			return nil
+		if filepath.Ext(fileName) == ".jar" || filepath.Ext(fileName) == ".JAR" {
+			wg.Add(1)
+			go func(filePath string) {
+				impM.readJAR(filePath, found)
+				wg.Done()
+			}(filePath)
+			return err
+		} else if filepath.Base(filePath) == "src.zip" && filepath.Base(filepath.Dir(filePath)) == "lib" {
+			wg.Add(1)
+			go func(filePath string) {
+				impM.readSOURCE(filePath, found)
+				wg.Done()
+			}(filePath)
+			return err
 		}
 
-		wg.Add(1)
-		go func(filePath string) {
-			impM.readJAR(filePath, found)
-			wg.Done()
-		}(filePath)
-
-		return err
+		return nil
 	})
 	wg.Wait()
 }
@@ -171,10 +218,10 @@ func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 func (impM *ImportMatcher) produceClasses(found chan string) {
 	var wg sync.WaitGroup
 	for _, JARPath := range impM.JARPaths {
-		//fmt.Printf("About to search for .jar files in %s...\n", JARPath)
+		// fmt.Printf("About to search for .jar files in %s...\n", JARPath)
 		wg.Add(1)
 		go func(path string) {
-			impM.findClassesInJAR(path, found)
+			impM.findClassesInJarOrSrc(path, found)
 			wg.Done()
 		}(JARPath)
 	}
@@ -193,13 +240,15 @@ func (impM *ImportMatcher) consumeClasses(found <-chan string, done chan<- bool)
 			className = lastField
 		}
 
-		// Check if the same or a shorter class name name already exists
+		// Check if the same or a shorter class name name already exists. Also prioritize class paths that does not start with "sun.".
 		impM.mut.RLock()
-		if existingClassPath, ok := impM.classMap[className]; ok && existingClassPath != "" && len(existingClassPath) <= len(classPath) {
+		if existingClassPath, ok := impM.classMap[className]; ok && existingClassPath != "" && ((len(existingClassPath) <= len(classPath)) || (!strings.HasPrefix(existingClassPath, "sun.") && strings.HasPrefix(classPath, "sun."))) {
 			impM.mut.RUnlock()
 			continue
 		}
 		impM.mut.RUnlock()
+
+		// fmt.Println("classPath", classPath)
 
 		// Store the new class name and class path
 		impM.mut.Lock()

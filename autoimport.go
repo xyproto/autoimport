@@ -1,8 +1,6 @@
 package autoimport
 
 import (
-	"fmt"
-	"os"
 	"sort"
 	"strings"
 )
@@ -14,7 +12,7 @@ func (impM *ImportMatcher) FindImports(sourceCode string) []string {
 	for _, word := range unique(extractWords(sourceCode)) {
 		foundPath := impM.ImportPathExact(word)
 		if foundPath == "" {
-			fmt.Fprintf(os.Stderr, "could not find an import path for this word: %s\n", word)
+			// fmt.Fprintf(os.Stderr, "could not find an import path for this word: %s (could be fine)\n", word)
 			continue
 		}
 		if foundPath != "" && !strings.HasPrefix(foundPath, "java.lang.") {
