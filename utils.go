@@ -63,7 +63,7 @@ func followSymlink(path string) string {
 	if err != nil {
 		return path
 	}
-	if !exists(s) && !strings.Contains(s, "/") { // relative symlink
+	if !exists(s) && !strings.HasPrefix(s, "/") { // relative symlink
 		s = filepath.Join(path, "..", s)
 	}
 	return s
