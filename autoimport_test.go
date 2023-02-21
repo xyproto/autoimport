@@ -1,4 +1,4 @@
-package importmatcher
+package autoimport
 
 import (
 	"testing"

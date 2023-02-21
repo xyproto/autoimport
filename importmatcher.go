@@ -1,5 +1,5 @@
-// Package importmatcher tries to find which import should be used, given the start of a class name
-package importmatcher
+// Package autoimport tries to find which import should be used, given the start of a class name
+package autoimport
 
 import (
 	"archive/zip"
