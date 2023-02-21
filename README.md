@@ -1,5 +1,3 @@
-# Auto Import
-
 # ! A WORK IN PROGRESS !
 
 Given source code, class names can be found in available `.jar` files, and import statements can be generated, for Java and for Kotlin.
