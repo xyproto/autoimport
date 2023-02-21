@@ -4,7 +4,6 @@ package autoimport
 import (
 	"archive/zip"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -172,7 +171,7 @@ func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 func (impM *ImportMatcher) produceClasses(found chan string) {
 	var wg sync.WaitGroup
 	for _, JARPath := range impM.JARPaths {
-		fmt.Printf("About to search for .jar files in %s...\n", JARPath)
+		//fmt.Printf("About to search for .jar files in %s...\n", JARPath)
 		wg.Add(1)
 		go func(path string) {
 			impM.findClassesInJAR(path, found)
