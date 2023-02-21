@@ -2,6 +2,8 @@
 
 Given source code, class names can be found in available `.jar` files, and import statements can be generated, for Java and for Kotlin.
 
+This currently only works for OpenJDK 8, not OpenJDK 11 and beyond.
+
 Includes the `autoimport` utility for looking up packages, given the start of a class name.
 
 Example use:
