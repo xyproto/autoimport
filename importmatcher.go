@@ -39,22 +39,43 @@ func New(onlyJava bool) (*ImportMatcher, error) {
 	return NewCustom(JARSearchPaths, onlyJava)
 }
 
-// NewCustom creates a new ImportMatcher, given a slice of paths to search for .jar files.
+// addDir adds a directory to the current slice of paths to search for .jar files
+func (impM *ImportMatcher) addDir(path string) {
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+	impM.JARPaths = append(impM.JARPaths, path)
+}
+
+// NewCustom creates a new ImportMatcher, given a slice of paths to search for .jar files
 func NewCustom(JARPaths []string, onlyJava bool) (*ImportMatcher, error) {
 	var impM ImportMatcher
 	impM.onlyJava = onlyJava
 
 	impM.JARPaths = make([]string, 0)
-	for _, JARPath := range JARPaths {
-		if !strings.HasSuffix(JARPath, "/") {
-			JARPath += "/"
-		}
-		if isDir(JARPath) {
-			impM.JARPaths = append(impM.JARPaths, JARPath)
+	for _, path := range JARPaths {
+		if isSymlink(path) {
+			// follow the symlink, once
+			path = followSymlink(path)
+			// if the path is a directory, collect it
+			if isDir(path) {
+				impM.addDir(path)
+				continue
+			}
+			// follow the symlink, repeatedly
+			for isSymlink(path) {
+				path = followSymlink(path)
+			}
+			// if the path is a directory, collect it
+			if isDir(path) {
+				impM.addDir(path)
+			}
+		} else if isDir(path) {
+			impM.addDir(path)
 		}
 	}
 
-	if len(JARPaths) == 0 {
+	if len(impM.JARPaths) == 0 {
 		return nil, errors.New("no paths to search for JAR files")
 	}
 
@@ -78,8 +99,6 @@ func (impM *ImportMatcher) ClassMap() map[string]string {
 // readJAR returns a list of classes within the given .jar file,
 // for instance "some.package.name.SomeClass"
 func (impM *ImportMatcher) readJAR(filePath string, found chan string) {
-	fmt.Println("Reading " + filePath)
-
 	readCloser, err := zip.OpenReader(filePath)
 	if err != nil {
 		return
@@ -153,6 +172,7 @@ func (impM *ImportMatcher) findClassesInJAR(JARPath string, found chan string) {
 func (impM *ImportMatcher) produceClasses(found chan string) {
 	var wg sync.WaitGroup
 	for _, JARPath := range impM.JARPaths {
+		fmt.Printf("About to search for .jar files in %s...\n", JARPath)
 		wg.Add(1)
 		go func(path string) {
 			impM.findClassesInJAR(path, found)
@@ -249,8 +269,8 @@ func (impM *ImportMatcher) StarPathExact(exactClassName string) string {
 }
 
 // ImportPathExact takes the exact class name and tries to return the shortest
-// specific import path for the matching class, if found, like "java.io.File".
-// Returns empty string if there are no matches.
+// specific import path for the matching class. For example, "File" could result
+// in "java.io.File". The function returns an empty string if there are no matches.
 func (impM *ImportMatcher) ImportPathExact(exactClassName string) string {
 	shortestClassName := ""
 	shortestImportPath := ""
