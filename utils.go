@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -35,7 +36,7 @@ func extractWords(sourceCode string) []string {
 	return re.FindAllString(sourceCode, -1)
 }
 
-// isDir checks if the given path is a directory
+// isDir checks if the given path is a directory (could also be a symlink)
 func isDir(path string) bool {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -44,18 +45,26 @@ func isDir(path string) bool {
 	return fi.IsDir()
 }
 
+// isDir checks if the given path is a symlink
 func isSymlink(path string) bool {
 	_, err := os.Readlink(path)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
+// exists checks if the given path exists
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// followSymlink follows the given path
 func followSymlink(path string) string {
 	s, err := os.Readlink(path)
 	if err != nil {
 		return path
+	}
+	if !exists(s) && !strings.Contains(s, "/") { // relative symlink
+		s = filepath.Join(path, "..", s)
 	}
 	return s
 }
@@ -78,4 +87,25 @@ func FindInEtcEnvironment(envVarName string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("could not find the value of %s in /etc/environment", envVarName)
+}
+
+// keys will return the keys in a map[string]bool map as a string slice
+func keys(m map[string]bool) []string {
+	var keyStrings []string
+	for k := range m {
+		keyStrings = append(keyStrings, k)
+	}
+	return keyStrings
+}
+
+// unique will return all unique strings from a given string slice
+func unique(xs []string) []string {
+	// initialize the capacity of the map with the length of the given string slice
+	uniqueStrings := make(map[string]bool, len(xs))
+	for _, x := range xs {
+		if _, ok := uniqueStrings[x]; !ok {
+			uniqueStrings[x] = true
+		}
+	}
+	return keys(uniqueStrings)
 }
