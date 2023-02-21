@@ -7,5 +7,8 @@ import (
 
 func TestFindKotlin(t *testing.T) {
 	kotlinPath, err := FindKotlin()
-	fmt.Println(kotlinPath, err)
+	if err != nil {
+		fmt.Printf("Could not find Kotlin: %s\n", err)
+	}
+	fmt.Printf("Found Kotlin at %s\n", kotlinPath)
 }

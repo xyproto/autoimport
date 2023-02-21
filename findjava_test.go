@@ -7,5 +7,8 @@ import (
 
 func TestFindJava(t *testing.T) {
 	javaPath, err := FindJava()
-	fmt.Println(javaPath, err)
+	if err != nil {
+		fmt.Printf("Could not find Java: %s\n", err)
+	}
+	fmt.Printf("Found Java at %s\n", javaPath)
 }

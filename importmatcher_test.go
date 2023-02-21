@@ -19,12 +19,12 @@ func TestSocketInputStream(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not initialize ImportMatcher: %s\n", err)
 	}
-	foundClass, foundImport := impM.StarPath("SocketInputS")
-	if foundClass != "SocketInputStream" {
-		t.Fatalf("SocketInputS did not match with SocketInputStream but with %s\n", foundClass)
+	foundClass, foundImport := impM.StarPath("FileSto")
+	if foundClass != "FileStore" {
+		t.Fatalf("FileSto did not match with FileStore but with %s\n", foundClass)
 	}
-	if foundImport != "java.net.*" {
-		t.Fatalf("Expected java.net.*, got %s\n", foundImport)
+	if foundImport != "java.nio.file.*" {
+		t.Fatalf("Expected java.nio.file.*, got %s\n", foundImport)
 	}
 }
 
