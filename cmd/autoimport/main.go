@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/alexflint/go-arg"
-	"github.com/xyproto/importmatcher"
+	"github.com/xyproto/autoimport"
 )
 
 type Args struct {
@@ -23,7 +23,7 @@ func main() {
 	var args Args
 	arg.MustParse(&args)
 
-	impl, err := importmatcher.New(args.JavaOnly)
+	impl, err := autoimport.New(args.JavaOnly)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -62,5 +62,4 @@ func main() {
 		foundImport := foundImports[i]
 		fmt.Printf("import %s; // %s\n", foundImport, foundClass)
 	}
-
 }
