@@ -8,6 +8,8 @@ import (
 	"github.com/xyproto/autoimport"
 )
 
+const versionString = "autoimport 1.0.0"
+
 type Args struct {
 	StartOfClassName  string `arg:"positional,required"`
 	ShortestMatchOnly bool   `arg:"-s,--shortest"`
@@ -16,7 +18,7 @@ type Args struct {
 }
 
 func (Args) Version() string {
-	return "w00t 1.0.0"
+	return versionString
 }
 
 func main() {
