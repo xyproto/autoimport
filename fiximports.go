@@ -86,9 +86,6 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 	for k, v := range importMap {
 		importLines = append(importLines, k+v)
 	}
-	if len(importLines) == 0 {
-		return data, nil // no change
-	}
 	sort.Strings(importLines)
 	if verbose {
 		fmt.Println()
@@ -97,14 +94,19 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 
 	// Imports are found, now modify the given source code and return it
 
+	hasImports := bytes.Contains(data, []byte("\nimport "))
+
 	importsDone := false
 	var sb strings.Builder
 	ForEachLineInData(data, func(line, trimmedLine string) {
-		if strings.HasPrefix(trimmedLine, "import ") {
+		if hasImports && strings.HasPrefix(trimmedLine, "import ") {
 			if !importsDone {
 				sb.WriteString(importBlock + "\n")
 				importsDone = true
 			} // else ignore this "import" line
+		} else if !hasImports && strings.HasPrefix(trimmedLine, "package ") {
+			sb.WriteString(line + "\n\n")
+			sb.WriteString(importBlock + "\n")
 		} else {
 			sb.WriteString(line + "\n")
 		}
