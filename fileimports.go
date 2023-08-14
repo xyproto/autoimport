@@ -8,10 +8,11 @@ import (
 	"strings"
 )
 
+// ForEachByteLine splits a file on '\n' and iterates over the byte slices
 func ForEachByteLine(filename string, process func([]byte)) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("could not read %s: %v/n", filename, err)
+		return fmt.Errorf("could not read %s: %v", filename, err)
 	}
 	byteLines := bytes.Split(data, []byte{'\n'})
 	for _, byteLine := range byteLines {
@@ -20,6 +21,8 @@ func ForEachByteLine(filename string, process func([]byte)) error {
 	return nil
 }
 
+// ForEachByteLine splits a file on '\n' and iterates over the lines.
+// The callback function will be given each line and trimmed line as the function iterates.
 func ForEachLine(filename string, process func(string, string)) error {
 	return ForEachByteLine(filename, func(byteLine []byte) {
 		process(string(byteLine), string(bytes.TrimSpace(byteLine)))
@@ -28,7 +31,7 @@ func ForEachLine(filename string, process func(string, string)) error {
 
 // FileImports generates sorted "import" lines for a .java or .kotlin file
 // (the ImportMatcher should be configured to be either for Java or Kotlin as well)
-func (impl *ImportMatcher) FileImports(filename string) (string, error) {
+func (ima *ImportMatcher) FileImports(filename string, verbose bool) (string, error) {
 	importMap := make(map[string]string) // from import path to comment (including "// ")
 	skipWords := []string{"package", "public", "private", "protected"}
 	var inComment bool
@@ -59,14 +62,19 @@ func (impl *ImportMatcher) FileImports(filename string) (string, error) {
 				fields := strings.SplitN(word, "<", 2)
 				word = strings.TrimSpace(fields[0])
 			}
-			//fmt.Println("WORD: " + word)
-			foundClass, foundImport := impl.StarPath(word)
+			if word == "" {
+				continue
+			}
+			foundClass, foundImport := ima.StarPath(word)
 			if foundImport == "java.lang.*" {
 				continue
 			}
 			if foundClass != "" && foundImport != "" {
 				key := "import " + foundImport + "; // "
 				value := foundClass
+				if verbose {
+					fmt.Printf("%s\t->\t%s%s\n", word, key, value)
+				}
 				if v, found := importMap[key]; found {
 					if !strings.Contains(v, value) {
 						newValues := v + ", " + value
@@ -88,5 +96,8 @@ func (impl *ImportMatcher) FileImports(filename string) (string, error) {
 		importLines = append(importLines, k+v)
 	}
 	sort.Strings(importLines)
+	if verbose {
+		fmt.Println()
+	}
 	return strings.Join(importLines, "\n"), nil
 }

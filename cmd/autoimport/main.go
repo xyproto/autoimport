@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/alexflint/go-arg"
 	"github.com/xyproto/autoimport"
@@ -16,6 +17,7 @@ type Args struct {
 	JavaOnly          bool   `arg:"-j,--java"`
 	Exact             bool   `arg:"-e,--exact"`
 	SourceFile        string `arg:"-f,--file"`
+	Verbose           bool   `arg:"-V,--verbose"`
 }
 
 func (Args) Version() string {
@@ -26,14 +28,20 @@ func main() {
 	var args Args
 	arg.MustParse(&args)
 
-	impl, err := autoimport.New(args.JavaOnly)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	var ima *autoimport.ImportMatcher
+	var err error
 
 	if args.SourceFile != "" {
-		imports, err := impl.FileImports(args.SourceFile)
+		if strings.HasSuffix(args.SourceFile, ".kt") {
+			ima, err = autoimport.New(false)
+		} else {
+			ima, err = autoimport.New(true)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		imports, err := ima.FileImports(args.SourceFile, args.Verbose)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -42,11 +50,18 @@ func main() {
 		return
 	}
 
+	ima, err = autoimport.New(args.JavaOnly)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+
+	}
+
 	var foundClasses, foundImports []string
 	if args.ShortestMatchOnly {
 		// Output a single class + import, if found
 		var foundClass, foundImport string
-		foundClass, foundImport = impl.StarPath(args.StartOfClassName)
+		foundClass, foundImport = ima.StarPath(args.StartOfClassName)
 		if foundClass == "" {
 			fmt.Fprintf(os.Stderr, "could not find the %s class\n", args.StartOfClassName)
 			os.Exit(1)
@@ -58,13 +73,13 @@ func main() {
 	// Output several classes and imports, if found
 
 	if args.Exact {
-		foundClasses, foundImports = impl.StarPathAllExact(args.StartOfClassName)
+		foundClasses, foundImports = ima.StarPathAllExact(args.StartOfClassName)
 		if len(foundClasses) == 0 {
 			fmt.Fprintf(os.Stderr, "could not find the %s class\n", args.StartOfClassName)
 			os.Exit(1)
 		}
 	} else {
-		foundClasses, foundImports = impl.StarPathAll(args.StartOfClassName)
+		foundClasses, foundImports = ima.StarPathAll(args.StartOfClassName)
 		if len(foundClasses) == 0 {
 			fmt.Fprintf(os.Stderr, "found no class starting with %s\n", args.StartOfClassName)
 			os.Exit(1)

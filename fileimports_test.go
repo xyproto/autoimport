@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// Sample implementation of ImportMatcher for the purpose of testing.
+// Sample imaementation of ImportMatcher for the purpose of testing.
 type SampleImportMatcher struct{}
 
 func (s *SampleImportMatcher) StarPath(word string) (string, string) {
@@ -47,18 +47,20 @@ public class Sample {
 	tmpfile.Close()
 
 	// Create instance of our test ImportMatcher
-	impl, err := New(true)
+	ima, err := New(true)
 	if err != nil {
 		t.Fatalf("Error initializing the import matcher: %v", err)
 	}
 
+	const verbose = false
+
 	// Get imports
-	imports, err := impl.FileImports(tmpfile.Name())
+	imports, err := ima.FileImports(tmpfile.Name(), verbose)
 	if err != nil {
 		t.Fatalf("Error generating imports: %v", err)
 	}
 
-	// Expected imports based on the provided implementation of ImportMatcher
+	// Expected imports based on the provided imaementation of ImportMatcher
 	expected := `import java.util.*; // ArrayList, HashMap, List, Map`
 
 	if imports != expected {
