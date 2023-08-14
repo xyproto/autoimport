@@ -39,10 +39,7 @@ func extractWords(sourceCode string) []string {
 // isDir checks if the given path is a directory (could also be a symlink)
 func isDir(path string) bool {
 	fi, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return fi.IsDir()
+	return err == nil && fi.IsDir()
 }
 
 // isDir checks if the given path is a symlink

@@ -21,7 +21,7 @@ func ForEachByteLine(filename string, process func([]byte)) error {
 	return nil
 }
 
-// ForEachByteLine splits a file on '\n' and iterates over the lines.
+// ForEachLine splits a file on '\n' and iterates over the lines.
 // The callback function will be given each line and trimmed line as the function iterates.
 func ForEachLine(filename string, process func(string, string)) error {
 	return ForEachByteLine(filename, func(byteLine []byte) {
