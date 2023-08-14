@@ -1,8 +1,6 @@
 package autoimport
 
 import (
-	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,7 +40,7 @@ func isDir(path string) bool {
 	return err == nil && fi.IsDir()
 }
 
-// isDir checks if the given path is a symlink
+// isSymlink checks if the given path is a symlink
 func isSymlink(path string) bool {
 	_, err := os.Readlink(path)
 	return err == nil
@@ -64,26 +62,6 @@ func followSymlink(path string) string {
 		s = filepath.Join(path, "..", s)
 	}
 	return s
-}
-
-func FindInEtcEnvironment(envVarName string) (string, error) {
-	// Find the definition of ie. JAVA_HOME within /etc/environment
-	data, err := os.ReadFile("/etc/environment")
-	if err != nil {
-		return "", err
-	}
-	lines := bytes.Split(data, []byte{'\n'})
-	for _, line := range lines {
-		if bytes.Contains(line, []byte(envVarName)) && bytes.Count(line, []byte("=")) == 1 {
-			fields := bytes.SplitN(line, []byte("="), 2)
-			javaPath := strings.TrimSpace(string(fields[1]))
-			if !isDir(javaPath) {
-				continue
-			}
-			return javaPath, nil
-		}
-	}
-	return "", fmt.Errorf("could not find the value of %s in /etc/environment", envVarName)
 }
 
 // keys will return the keys in a map[string]bool map as a string slice

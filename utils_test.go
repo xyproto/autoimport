@@ -2,12 +2,14 @@ package autoimport
 
 import (
 	"testing"
+
+	"github.com/xyproto/env/v2"
 )
 
 func TestFindJavaInEtcEnvironment(t *testing.T) {
-	FindInEtcEnvironment("JAVA_HOME")
+	env.EtcEnvironment("JAVA_HOME")
 }
 
 func TestFindKotlinInEtcEnvironment(t *testing.T) {
-	FindInEtcEnvironment("KOTLIN_HOME")
+	env.EtcEnvironment("KOTLIN_HOME")
 }

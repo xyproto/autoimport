@@ -50,7 +50,7 @@ func FindJava() (string, error) {
 		}
 	}
 	// Check if JAVA_HOME is defined in /etc/environment
-	javaPath, err := FindInEtcEnvironment("JAVA_HOME")
+	javaPath, err := env.EtcEnvironment("JAVA_HOME")
 	if err == nil && isDir(javaPath) {
 		javaPathParent := filepath.Dir(javaPath)
 		if isDir(javaPathParent) {

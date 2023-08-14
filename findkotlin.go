@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/xyproto/env/v2"
 )
 
 const kotlinPath = "/usr/share/kotlin/lib"
@@ -49,7 +51,7 @@ func FindKotlin() (string, error) {
 		}
 	}
 	// Check if KOTLIN_HOME is defined in /etc/environment
-	kotlinPath, err := FindInEtcEnvironment("KOTLIN_HOME")
+	kotlinPath, err := env.EtcEnvironment("KOTLIN_HOME")
 	if err == nil && isDir(kotlinPath) {
 		kotlinPathParent := filepath.Dir(kotlinPath)
 		if isDir(kotlinPathParent) {
