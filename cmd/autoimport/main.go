@@ -11,10 +11,11 @@ import (
 const versionString = "autoimport 1.0.0"
 
 type Args struct {
-	StartOfClassName  string `arg:"positional,required"`
+	StartOfClassName  string `arg:"positional"`
 	ShortestMatchOnly bool   `arg:"-s,--shortest"`
 	JavaOnly          bool   `arg:"-j,--java"`
 	Exact             bool   `arg:"-e,--exact"`
+	SourceFile        string `arg:"-f,--file"`
 }
 
 func (Args) Version() string {
@@ -29,9 +30,19 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-
 	}
 
+	if args.SourceFile != "" {
+		imports, err := impl.FileImports(args.SourceFile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Println(imports)
+		return
+	}
+
+	var foundClasses, foundImports []string
 	if args.ShortestMatchOnly {
 		// Output a single class + import, if found
 		var foundClass, foundImport string
@@ -45,7 +56,7 @@ func main() {
 	}
 
 	// Output several classes and imports, if found
-	var foundClasses, foundImports []string
+
 	if args.Exact {
 		foundClasses, foundImports = impl.StarPathAllExact(args.StartOfClassName)
 		if len(foundClasses) == 0 {
