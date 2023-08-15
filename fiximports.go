@@ -23,9 +23,8 @@ func ForEachLineInData(data []byte, process func(string, string)) {
 	})
 }
 
-// FileImports generates sorted "import" lines for a .java or .kotlin file
-// (the ImportMatcher should be configured to be either for Java or Kotlin as well)
-func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) {
+// ImportBlock generates "import" lines for the given Java or Kotlin source code
+func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error) {
 	importMap := make(map[string]string) // from import path to comment (including "// ")
 	skipWords := []string{"package", "public", "private", "protected"}
 	var inComment bool
@@ -81,16 +80,27 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 				}
 			}
 		}
+		if verbose {
+			fmt.Println()
+		}
 	})
 	var importLines []string
 	for k, v := range importMap {
 		importLines = append(importLines, k+v)
 	}
 	sort.Strings(importLines)
-	if verbose {
-		fmt.Println()
-	}
 	importBlock := strings.Join(importLines, "\n")
+	return []byte(importBlock), nil
+}
+
+// FixImports generates sorted "import" lines for a .java or .kotlin file
+// (the ImportMatcher should be configured to be either for Java or Kotlin as well).
+// The existing imports (if any) are the replaced with the generated imports.
+func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) {
+	importBlockBytes, err := ima.ImportBlock(data, verbose)
+	if err != nil {
+		return nil, err
+	}
 
 	// Imports are found, now modify the given source code and return it
 
@@ -101,12 +111,14 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 	ForEachLineInData(data, func(line, trimmedLine string) {
 		if hasImports && strings.HasPrefix(trimmedLine, "import ") {
 			if !importsDone {
-				sb.WriteString(importBlock + "\n")
+				sb.Write(importBlockBytes)
+				sb.WriteString("\n")
 				importsDone = true
 			} // else ignore this "import" line
 		} else if !hasImports && strings.HasPrefix(trimmedLine, "package ") {
 			sb.WriteString(line + "\n\n")
-			sb.WriteString(importBlock + "\n")
+			sb.Write(importBlockBytes)
+			sb.WriteString("\n")
 		} else {
 			sb.WriteString(line + "\n")
 		}
