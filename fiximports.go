@@ -62,6 +62,7 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 			if foundImport == "java.lang.*" {
 				continue
 			}
+			foundImport = strings.TrimPrefix(foundImport, "java.desktop.java.")
 			if foundImport != "" {
 				key := "import " + foundImport + "; // "
 				value := word
@@ -128,7 +129,9 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 		})
 		var importLines []string
 		for _, trimmedLine := range importMap {
-			importLines = append(importLines, trimmedLine)
+			if trimmedLine != "" {
+				importLines = append(importLines, trimmedLine)
+			}
 		}
 		sort.Strings(importLines)
 		// We now have a new import block that keeps the old imports, but not duplicates
