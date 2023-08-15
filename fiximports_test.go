@@ -52,11 +52,14 @@ public class Main {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ima, err := New(true)
+			const onlyJava = true
+			const removeExistingImports = true
+			ima, err := New(onlyJava, removeExistingImports)
 			if err != nil {
 				t.Fatalf("Error initializing the import matcher: %v", err)
 			}
-			got, err := ima.FixImports([]byte(tt.input), false)
+			const verbose = true
+			got, err := ima.FixImports([]byte(tt.input), verbose)
 			if err != nil {
 				t.Fatalf("Error processing FixImports: %v", err)
 			}
