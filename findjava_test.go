@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestFindJava(t *testing.T) {
+func TestFindJava(_ *testing.T) {
 	javaPath, err := FindJava()
 	if err != nil {
 		fmt.Printf("Could not find Java: %s\n", err)

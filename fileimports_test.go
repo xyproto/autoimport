@@ -1,7 +1,6 @@
 package autoimport
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -34,7 +33,7 @@ public class Sample {
 }
 `
 	// Write to a temporary file
-	tmpfile, err := ioutil.TempFile("", "sample.*.java")
+	tmpfile, err := os.CreateTemp("", "sample.*.java")
 	if err != nil {
 		t.Fatalf("Could not create temporary file: %v", err)
 	}
