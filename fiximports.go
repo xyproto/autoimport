@@ -106,6 +106,35 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 
 	hasImports := bytes.Contains(data, []byte("\nimport "))
 
+	if hasImports && !ima.removeExistingImports {
+		importMap := make(map[string]string)
+		ForEachLineInData(data, func(line, trimmedLine string) {
+			if strings.HasPrefix(trimmedLine, "import ") {
+				key := trimmedLine
+				if strings.Contains(key, "//") {
+					fields := strings.SplitN(key, "//", 2)
+					key = fields[0]
+				}
+				importMap[key] = trimmedLine
+			}
+		})
+		ForEachLineInData(importBlockBytes, func(line, trimmedLine string) {
+			key := trimmedLine
+			if strings.Contains(key, "//") {
+				fields := strings.SplitN(key, "//", 2)
+				key = fields[0]
+			}
+			importMap[key] = trimmedLine
+		})
+		var importLines []string
+		for _, trimmedLine := range importMap {
+			importLines = append(importLines, trimmedLine)
+		}
+		sort.Strings(importLines)
+		// We now have a new import block that keeps the old imports, but not duplicates
+		importBlockBytes = []byte(strings.Join(importLines, "\n"))
+	}
+
 	importsDone := false
 	var sb strings.Builder
 	ForEachLineInData(data, func(line, trimmedLine string) {
