@@ -62,7 +62,9 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 			if foundImport == "java.lang.*" {
 				continue
 			}
-			foundImport = strings.TrimPrefix(foundImport, "java.desktop.java.")
+			if strings.HasPrefix(foundImport, "java.desktop.java.") {
+				foundImport = strings.TrimPrefix(foundImport, "java.desktop.")
+			}
 			if foundImport != "" {
 				key := "import " + foundImport + "; // "
 				value := word
@@ -86,8 +88,12 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 		}
 	})
 	var importLines []string
+	var importLine string
 	for k, v := range importMap {
-		importLines = append(importLines, k+v)
+		importLine = k + v
+		if importLine != "" {
+			importLines = append(importLines, importLine)
+		}
 	}
 	sort.Strings(importLines)
 	importBlock := strings.Join(importLines, "\n")
@@ -116,7 +122,9 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 					fields := strings.SplitN(key, "//", 2)
 					key = fields[0]
 				}
-				importMap[key] = trimmedLine
+				if trimmedLine != "" {
+					importMap[key] = trimmedLine
+				}
 			}
 		})
 		ForEachLineInData(importBlockBytes, func(line, trimmedLine string) {
@@ -125,7 +133,9 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 				fields := strings.SplitN(key, "//", 2)
 				key = fields[0]
 			}
-			importMap[key] = trimmedLine
+			if trimmedLine != "" {
+				importMap[key] = trimmedLine
+			}
 		})
 		var importLines []string
 		for _, trimmedLine := range importMap {
