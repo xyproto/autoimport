@@ -222,6 +222,9 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 			} // else ignore this "import" line
 		} else if !hasImports && strings.HasPrefix(trimmedLine, "package ") {
 			sb.WriteString(line + "\n")
+			if ima.DeGlob {
+				sb.WriteString("\n")
+			}
 			sb.Write(importBlockBytes)
 			sb.WriteString("\n")
 		} else {
