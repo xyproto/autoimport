@@ -4,6 +4,6 @@ github.com/alexflint/go-arg
 # github.com/alexflint/go-scalar v1.2.0
 ## explicit; go 1.15
 github.com/alexflint/go-scalar
-# github.com/xyproto/env/v2 v2.1.0
-## explicit; go 1.15
+# github.com/xyproto/env/v2 v2.2.4
+## explicit; go 1.19
 github.com/xyproto/env/v2
