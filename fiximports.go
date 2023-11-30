@@ -51,7 +51,7 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 		if !ima.onlyJava && strings.HasPrefix(trimmedLine, "class ") || strings.Contains(trimmedLine, " class ") {
 			fields := strings.Fields(trimmedLine)
 			for i := range fields {
-				if strings.TrimSpace(fields[i-1]) == "class" {
+				if i > 0 && strings.TrimSpace(fields[i-1]) == "class" {
 					kotlinClassDefs = append(kotlinClassDefs, strings.TrimSpace(fields[i]))
 				}
 			}
