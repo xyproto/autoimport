@@ -11,15 +11,18 @@ import (
 
 const versionString = "autoimport 1.0.0"
 
+// Args defines the possible command line arguments
 type Args struct {
 	StartOfClassName  string `arg:"positional"`
+	SourceFile        string `arg:"-f,--file"`
 	ShortestMatchOnly bool   `arg:"-s,--shortest"`
 	JavaOnly          bool   `arg:"-j,--java"`
 	Exact             bool   `arg:"-e,--exact"`
-	SourceFile        string `arg:"-f,--file"`
 	Verbose           bool   `arg:"-V,--verbose"`
+	NoGlob            bool   `arg:"-n,--noglob"`
 }
 
+// Version will output the current program name and version
 func (Args) Version() string {
 	return versionString
 }
@@ -46,7 +49,13 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Println(imports)
+		if args.NoGlob {
+			for _, deGlobbedImport := range autoimport.DeGlob(imports) {
+				fmt.Println(deGlobbedImport)
+			}
+		} else {
+			fmt.Println(imports)
+		}
 		return
 	}
 
