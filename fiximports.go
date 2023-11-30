@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var KotlinTypes = []string{"Annotation", "Any", "Array", "Boolean", "Byte", "Char", "CharSequence", "Collection", "Comparable", "Double", "Enum", "Float", "Int", "IntrinsicConstEvaluation", "Iterable", "Iterator", "List", "ListIterator", "Long", "Map", "MutableCollection", "MutableIterable", "MutableIterator", "MutableList", "MutableListIterator", "MutableMap", "MutableSet", "Nothing", "Number", "PlatformDependent", "PureReifiable", "Set", "Short", "String", "Throwable"}
+
 // ForEachByteLineInData splits data on '\n' and iterates over the byte slices
 func ForEachByteLineInData(data []byte, process func([]byte)) {
 	byteLines := bytes.Split(data, []byte{'\n'})
@@ -84,6 +86,10 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 			}
 			if !ima.onlyJava && hasS(kotlinClassDefs, word) {
 				// Do not import Kotlin classes that are defined in the same file
+				continue
+			}
+			if !ima.onlyJava && hasS(KotlinTypes, word) {
+				// Do not import anything for Kotlin types like List or String
 				continue
 			}
 			foundImport := ima.StarPathExact(word)
