@@ -27,6 +27,8 @@ func ForEachLineInData(data []byte, process func(string, string)) {
 func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error) {
 	importMap := make(map[string]string) // from import path to comment (including "// ")
 	skipWords := []string{"package", "public", "private", "protected"}
+	var typeAliases []string
+	var kotlinClassDefs []string
 	var inComment bool
 	ForEachLineInData(data, func(line, trimmedLine string) {
 		if strings.HasPrefix(trimmedLine, "//") {
@@ -36,6 +38,24 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 			if strings.HasPrefix(trimmedLine, skipWord) {
 				return // continue
 			}
+		}
+		// Pick up and store type aliases, so that these are not imported
+		if !ima.onlyJava && strings.HasPrefix(trimmedLine, "typealias ") {
+			fields := strings.Fields(trimmedLine)
+			if len(fields) > 2 {
+				typeAliases = append(typeAliases, strings.TrimSpace(fields[1]))
+			}
+			return // continue
+		}
+		// Pick up and store class definitions within the same file, so that these are not imported
+		if !ima.onlyJava && strings.HasPrefix(trimmedLine, "class ") || strings.Contains(trimmedLine, " class ") {
+			fields := strings.Fields(trimmedLine)
+			for i := range fields {
+				if strings.TrimSpace(fields[i-1]) == "class" {
+					kotlinClassDefs = append(kotlinClassDefs, strings.TrimSpace(fields[i]))
+				}
+			}
+			return // continue
 		}
 		if !inComment && strings.Contains(trimmedLine, "/*") && !strings.Contains(trimmedLine, "*/") {
 			inComment = true
@@ -56,6 +76,14 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 				word = strings.TrimSpace(fields[0])
 			}
 			if word == "" {
+				continue
+			}
+			if !ima.onlyJava && hasS(typeAliases, word) {
+				// Do not import Kotlin classes with the same names as type imports
+				continue
+			}
+			if !ima.onlyJava && hasS(kotlinClassDefs, word) {
+				// Do not import Kotlin classes that are defined in the same file
 				continue
 			}
 			foundImport := ima.StarPathExact(word)
