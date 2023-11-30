@@ -194,6 +194,10 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 		importBlockBytes = []byte(strings.Join(importLines, "\n"))
 	}
 
+	if ima.DeGlob {
+		importBlockBytes = []byte(strings.Join(DeGlob(string(importBlockBytes)), "\n"))
+	}
+
 	// Now replace/insert the newly organized import statements
 
 	var (
