@@ -7,7 +7,17 @@ import (
 	"strings"
 )
 
-var KotlinTypes = []string{"Annotation", "Any", "Array", "Boolean", "Byte", "Char", "CharSequence", "Collection", "Comparable", "Double", "Enum", "Float", "Int", "IntrinsicConstEvaluation", "Iterable", "Iterator", "List", "ListIterator", "Long", "Map", "MutableCollection", "MutableIterable", "MutableIterator", "MutableList", "MutableListIterator", "MutableMap", "MutableSet", "Nothing", "Number", "PlatformDependent", "PureReifiable", "Set", "Short", "String", "Throwable"}
+// KotlinTypes lists classes and types that are available in Kotlin (with imports in mind)
+var KotlinTypes = []string{
+	"Annotation", "Any", "Array", "Boolean", "Byte", "Char", "CharSequence",
+	"Collection", "Comparable", "Double", "Enum", "Float", "Function", "Int",
+	"IntrinsicConstEvaluation", "Iterable", "Iterator", "List", "ListIterator",
+	"Long", "Map", "Map.Entry", "MutableCollection", "MutableIterable",
+	"MutableIterator", "MutableList", "MutableListIterator", "MutableMap",
+	"MutableMap.MutableEntry", "MutableSet", "Nothing", "Number", "Pair",
+	"PlatformDependent", "PureReifiable", "Runnable", "Set", "Short", "String",
+	"Throwable", "Triple", "Unit", "UByte", "UInt", "ULong", "UShort",
+}
 
 // ForEachByteLineInData splits data on '\n' and iterates over the byte slices
 func ForEachByteLineInData(data []byte, process func([]byte)) {
