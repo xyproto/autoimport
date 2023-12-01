@@ -114,6 +114,7 @@ import javax.swing.*;
 import net.java.games.jogl.*;
 
 
+
 /** This is a basic JOGL app. Feel free to reuse this code or modify it. */
 public class SimpleJoglApp extends JFrame {
     public static void main(String[] args) {
@@ -159,6 +160,30 @@ public class SimpleJoglApp extends JFrame {
                 (screenSize.width - frameSize.width) >> 1,
                 (screenSize.height - frameSize.height) >> 1);
     }
+}
+`,
+			removeExisting: false,
+		},
+		{
+			name: "Java complex annotation handling",
+			input: `
+package com.example;
+
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+
+@EntityScan(basePackages = ["com.ostebolle.trust.feedback"])
+public class Main {
+    // some code
+}
+`,
+			expected: `
+package com.example;
+
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+
+@EntityScan(basePackages = ["com.ostebolle.trust.feedback"])
+public class Main {
+    // some code
 }
 `,
 			removeExisting: false,

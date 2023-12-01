@@ -87,9 +87,7 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 				fields := strings.SplitN(word, "<", 2)
 				word = strings.TrimSpace(fields[0])
 			}
-			if strings.HasPrefix(word, "@") { // Also handle attributes / decorators
-				word = word[1:]
-			}
+			word = strings.TrimPrefix(word, "@") // Also handle attributes / decorators
 			if word == "" {
 				continue
 			}
@@ -217,8 +215,19 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 		sb               strings.Builder
 		importsDone      bool
 		ignoreBlankLines int
+		blankLineCount   int
 	)
 	ForEachLineInData(data, func(line, trimmedLine string) {
+		// Count consecutive blank lines
+		if trimmedLine == "" {
+			blankLineCount++
+			if blankLineCount >= 2 { // && importsDone
+				return // continue
+			}
+		} else {
+			blankLineCount = 0
+		}
+
 		if ignoreBlankLines > 0 {
 			if trimmedLine == "" {
 				ignoreBlankLines--
@@ -226,12 +235,16 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 			}
 			ignoreBlankLines = 0
 		}
+
 		if hasImports && strings.HasPrefix(trimmedLine, "import ") {
 			if !importsDone {
 				sb.Write(importBlockBytes)
 				sb.WriteString("\n")
 				importsDone = true
 				ignoreBlankLines = 2
+				if !bytes.HasSuffix(importBlockBytes, []byte{'\n', '\n'}) {
+					ignoreBlankLines = 0
+				}
 			} // else ignore this "import" line
 		} else if !hasImports && strings.HasPrefix(trimmedLine, "package ") {
 			sb.WriteString(line + "\n")
@@ -239,6 +252,9 @@ func (ima *ImportMatcher) FixImports(data []byte, verbose bool) ([]byte, error) 
 				sb.WriteString("\n")
 			}
 			sb.Write(importBlockBytes)
+			if !bytes.HasSuffix(importBlockBytes, []byte{'\n', '\n'}) {
+				sb.WriteString("\n")
+			}
 			sb.WriteString("\n")
 		} else {
 			sb.WriteString(line + "\n")
