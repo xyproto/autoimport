@@ -114,7 +114,6 @@ import javax.swing.*;
 import net.java.games.jogl.*;
 
 
-
 /** This is a basic JOGL app. Feel free to reuse this code or modify it. */
 public class SimpleJoglApp extends JFrame {
     public static void main(String[] args) {
