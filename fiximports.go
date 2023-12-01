@@ -87,6 +87,9 @@ func (ima *ImportMatcher) ImportBlock(data []byte, verbose bool) ([]byte, error)
 				fields := strings.SplitN(word, "<", 2)
 				word = strings.TrimSpace(fields[0])
 			}
+			if strings.HasPrefix(word, "@") { // Also handle attributes / decorators
+				word = word[1:]
+			}
 			if word == "" {
 				continue
 			}
